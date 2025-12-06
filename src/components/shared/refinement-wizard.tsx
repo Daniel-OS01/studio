@@ -252,7 +252,7 @@ export function RefinementWizard({
                 </Button>
                 <h3 className="font-semibold text-lg">{step.data.title}</h3>
                 <p className="text-sm text-muted-foreground">{step.data.explanation}</p>
-                <div className="space-y-2">
+                <div className="grid grid-cols-2 gap-2">
                     {step.data.options.map(option => (
                         <Button 
                             key={option.title}
