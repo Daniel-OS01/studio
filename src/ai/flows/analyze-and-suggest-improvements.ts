@@ -55,10 +55,7 @@ const analyzeAndSuggestImprovementsFlow = ai.defineFlow(
     outputSchema: AnalyzeAndSuggestImprovementsOutputSchema,
   },
   async ({prompt: promptText, apiKey, modelName}) => {
-    let plugins = [];
-    if (apiKey) {
-      plugins.push(googleAI({apiKey}));
-    }
+    const plugins = apiKey ? [googleAI({apiKey})] : [];
     const model = modelName ? googleAI.model(modelName) : undefined;
     const {output} = await prompt({prompt: promptText}, {plugins, model});
     return output!;

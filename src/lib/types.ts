@@ -24,8 +24,15 @@ export type PromptComparison = ComparePromptVersionsOutput
 
 export type View = "studio" | "local-library" | "community-library" | "settings"
 
+export type ApiKey = {
+  name: string
+  key: string
+}
+
 export type AppSettings = {
-  apiKey: string
+  apiKeys: ApiKey[]
+  activeApiKeyIndex: number
+  lastModified?: string
   models: {
     analysis: string
     metrics: string

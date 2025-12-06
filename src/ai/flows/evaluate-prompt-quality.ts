@@ -48,10 +48,7 @@ const evaluatePromptQualityFlow = ai.defineFlow(
     outputSchema: EvaluatePromptQualityOutputSchema,
   },
   async ({prompt: promptText, apiKey, modelName}) => {
-    let plugins = [];
-    if (apiKey) {
-      plugins.push(googleAI({apiKey}));
-    }
+    const plugins = apiKey ? [googleAI({apiKey})] : [];
     const model = modelName ? googleAI.model(modelName) : undefined;
     const {output} = await prompt({prompt: promptText}, {plugins, model});
     return output!;

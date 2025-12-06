@@ -237,9 +237,9 @@ export function StudioView() {
   const [recommendations, setRecommendations] =
     useState<PromptRecommendations | null>(null)
 
-  const [settings] = useLocalStorage<AppSettings>(
+  const [settings, setSettings] = useLocalStorage<AppSettings>(
     "prompt-forge-settings",
-    { apiKey: "", models: { analysis: "gemini-2.5-flash", metrics: "gemini-2.5-flash", recommendations: "gemini-2.5-flash" } }
+    { apiKeys: [], activeApiKeyIndex: 0, models: { analysis: "gemini-2.5-flash", metrics: "gemini-2.5-flash", recommendations: "gemini-2.5-flash" } }
   )
   const [, setHistory] = useLocalStorage<PromptVersion[]>(
     "prompt-forge-history",
@@ -255,6 +255,15 @@ export function StudioView() {
   const [isRecommending, startRecommending] = useTransition()
 
   const { toast } = useToast()
+
+  const getNextApiKey = () => {
+    if (!settings.apiKeys || settings.apiKeys.length === 0) {
+      return undefined;
+    }
+    const nextIndex = (settings.activeApiKeyIndex + 1) % settings.apiKeys.length;
+    setSettings(prev => ({...prev, activeApiKeyIndex: nextIndex }));
+    return settings.apiKeys[settings.activeApiKeyIndex]?.key;
+  }
 
   const handleSaveToHistory = () => {
     if (!promptText.trim()) return
@@ -281,9 +290,10 @@ export function StudioView() {
     startAnalyzing(async () => {
       setAnalysis(null)
       try {
+        const apiKey = getNextApiKey();
         const result = await analyzeAndSuggestImprovements({ 
           prompt: promptText, 
-          apiKey: settings.apiKey || undefined,
+          apiKey: apiKey,
           modelName: settings.models.analysis,
         })
         setAnalysis(result)
@@ -311,8 +321,9 @@ export function StudioView() {
     startEvaluating(async () => {
       setMetrics(null)
       try {
+        const apiKey = getNextApiKey();
         const result = await evaluatePromptQuality(
-          { prompt: promptText, apiKey: settings.apiKey || undefined, modelName: settings.models.metrics }
+          { prompt: promptText, apiKey: apiKey, modelName: settings.models.metrics }
         )
         setMetrics(result)
         handleSaveToHistory()
@@ -339,9 +350,10 @@ export function StudioView() {
     startRecommending(async () => {
       setRecommendations(null)
       try {
+        const apiKey = getNextApiKey();
         const result = await optimizePromptRecommendations({
           promptText: promptText,
-          apiKey: settings.apiKey || undefined,
+          apiKey: apiKey,
           modelName: settings.models.recommendations,
         })
         setRecommendations(result)

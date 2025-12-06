@@ -86,10 +86,7 @@ const optimizePromptRecommendationsFlow = ai.defineFlow(
     outputSchema: OptimizePromptRecommendationsOutputSchema,
   },
   async ({promptText, apiKey, modelName}) => {
-    let plugins = [];
-    if (apiKey) {
-      plugins.push(googleAI({apiKey}));
-    }
+    const plugins = apiKey ? [googleAI({apiKey})] : [];
     const model = modelName ? googleAI.model(modelName) : undefined;
     const {output} = await prompt({promptText}, {plugins, model});
     return output!;

@@ -22,9 +22,10 @@ import {
 } from "@/components/ui/select"
 import { useLocalStorage } from "@/hooks/use-local-storage"
 import { useToast } from "@/hooks/use-toast"
-import type { AppSettings } from "@/lib/types"
-import { Key, Save } from "lucide-react"
+import type { AppSettings, ApiKey } from "@/lib/types"
+import { Key, Plus, Save, Trash2, Info } from "lucide-react"
 import React, { useEffect, useState } from "react"
+import { format } from "date-fns"
 
 const availableModels = [
   "gemini-2.5-flash",
@@ -41,7 +42,8 @@ function SettingsViewContent() {
   const [savedSettings, setSavedSettings] = useLocalStorage<AppSettings>(
     "prompt-forge-settings",
     {
-      apiKey: "",
+      apiKeys: [],
+      activeApiKeyIndex: 0,
       models: {
         analysis: "gemini-2.5-flash",
         metrics: "gemini-2.5-flash",
@@ -51,12 +53,14 @@ function SettingsViewContent() {
   )
 
   const [localSettings, setLocalSettings] = useState<AppSettings>(savedSettings)
+  const [newKeyName, setNewKeyName] = useState("")
+  const [newKeyValue, setNewKeyValue] = useState("")
   const { toast } = useToast()
 
   useEffect(() => {
     setLocalSettings(savedSettings)
   }, [savedSettings])
-
+  
   const handleModelChange = (modelType: ModelConfig, value: string) => {
     const isCustom = value === customModelValue
     setLocalSettings((prev) => ({
@@ -78,15 +82,34 @@ function SettingsViewContent() {
     }))
   }
 
-  const handleApiKeyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setLocalSettings((prev) => ({
-      ...prev,
-      apiKey: e.target.value,
-    }))
+  const handleAddNewKey = () => {
+    if (!newKeyName.trim() || !newKeyValue.trim()) {
+      toast({
+        title: "Missing Details",
+        description: "Please provide both a name and a value for the API key.",
+        variant: "destructive",
+      })
+      return
+    }
+    setLocalSettings(prev => ({
+        ...prev,
+        apiKeys: [...prev.apiKeys, { name: newKeyName, key: newKeyValue }]
+    }));
+    setNewKeyName("");
+    setNewKeyValue("");
+  }
+  
+  const handleDeleteKey = (index: number) => {
+      setLocalSettings(prev => ({
+          ...prev,
+          apiKeys: prev.apiKeys.filter((_, i) => i !== index),
+          activeApiKeyIndex: prev.activeApiKeyIndex >= index ? Math.max(0, prev.activeApiKeyIndex -1) : prev.activeApiKeyIndex
+      }));
   }
 
   const handleSaveChanges = () => {
-    setSavedSettings(localSettings)
+    const newSettings = { ...localSettings, lastModified: new Date().toISOString() };
+    setSavedSettings(newSettings)
     toast({
       title: "Settings Saved",
       description: "Your new settings have been applied.",
@@ -96,30 +119,67 @@ function SettingsViewContent() {
   const isCustomModel = (modelName: string) =>
     modelName !== "" && !availableModels.includes(modelName)
 
+  const currentKey = savedSettings.apiKeys[savedSettings.activeApiKeyIndex];
+
   return (
     <main className="flex-1 flex flex-col p-4 gap-4 overflow-hidden">
       <Card>
         <CardHeader>
-          <CardTitle>API Configuration</CardTitle>
+          <CardTitle>API Key Management</CardTitle>
           <CardDescription>
-            Provide your own Google API Key to use for all AI features. This
-            will override any default keys.
+            Add and manage multiple Google API keys. The app will rotate through them.
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="grid gap-2 max-w-lg">
-            <Label htmlFor="api-key" className="flex items-center gap-2">
-              <Key className="w-4 h-4" />
-              Google API Key
-            </Label>
-            <Input
-              id="api-key"
-              type="password"
-              placeholder="Enter your Google API Key"
-              value={localSettings.apiKey}
-              onChange={handleApiKeyChange}
-            />
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            {localSettings.apiKeys.map((apiKey, index) => (
+              <div key={index} className="flex items-center gap-2 p-2 rounded-md bg-muted">
+                <Key className="text-muted-foreground" />
+                <div className="flex-1">
+                  <p className="font-semibold">{apiKey.name}</p>
+                  <p className="text-sm text-muted-foreground truncate">{`**********${apiKey.key.slice(-4)}`}</p>
+                </div>
+                <Button variant="ghost" size="icon" onClick={() => handleDeleteKey(index)}>
+                  <Trash2 className="text-destructive"/>
+                </Button>
+              </div>
+            ))}
           </div>
+          <div className="flex items-end gap-2">
+            <div className="grid gap-1.5 flex-1">
+              <Label htmlFor="new-key-name">Key Name</Label>
+              <Input id="new-key-name" placeholder="e.g., Personal Key" value={newKeyName} onChange={(e) => setNewKeyName(e.target.value)} />
+            </div>
+            <div className="grid gap-1.5 flex-1">
+              <Label htmlFor="new-key-value">Key Value</Label>
+              <Input id="new-key-value" type="password" placeholder="Enter Google API Key" value={newKeyValue} onChange={(e) => setNewKeyValue(e.target.value)}/>
+            </div>
+            <Button onClick={handleAddNewKey}><Plus /> Add Key</Button>
+          </div>
+        </CardContent>
+      </Card>
+       <Card>
+        <CardHeader>
+          <CardTitle>Usage Status</CardTitle>
+          <CardDescription>
+            Information about your current settings configuration.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="grid sm:grid-cols-2 gap-4 text-sm">
+            <div className="flex items-center gap-2 p-3 rounded-md bg-muted">
+                <Info className="text-muted-foreground"/>
+                <div>
+                    <p className="font-semibold">Last Modified</p>
+                    <p className="text-muted-foreground">{savedSettings.lastModified ? format(new Date(savedSettings.lastModified), "PPP p") : 'Not saved yet'}</p>
+                </div>
+            </div>
+            <div className="flex items-center gap-2 p-3 rounded-md bg-muted">
+                <Key className="text-muted-foreground"/>
+                <div>
+                    <p className="font-semibold">Current API Key in Use</p>
+                    <p className="text-muted-foreground">{currentKey ? `${currentKey.name} (**********${currentKey.key.slice(-4)})` : 'No active key'}</p>
+                </div>
+            </div>
         </CardContent>
       </Card>
       <Card>
@@ -155,7 +215,7 @@ function SettingsViewContent() {
                 </SelectContent>
               </Select>
             </div>
-            {localSettings.models.analysis === "" || isCustomModel(localSettings.models.analysis) ? (
+            {(localSettings.models.analysis === "" || isCustomModel(localSettings.models.analysis)) && (
               <Input
                 placeholder="Enter custom model name"
                 value={localSettings.models.analysis}
@@ -163,7 +223,7 @@ function SettingsViewContent() {
                   handleCustomModelChange("analysis", e.target.value)
                 }
               />
-            ) : null}
+            )}
           </div>
           <div className="grid gap-4">
             <div className="grid gap-2">
@@ -189,7 +249,7 @@ function SettingsViewContent() {
                 </SelectContent>
               </Select>
             </div>
-            {localSettings.models.metrics === "" || isCustomModel(localSettings.models.metrics) ? (
+            {(localSettings.models.metrics === "" || isCustomModel(localSettings.models.metrics)) && (
               <Input
                 placeholder="Enter custom model name"
                 value={localSettings.models.metrics}
@@ -197,7 +257,7 @@ function SettingsViewContent() {
                   handleCustomModelChange("metrics", e.target.value)
                 }
               />
-            ) : null}
+            )}
           </div>
           <div className="grid gap-4">
             <div className="grid gap-2">
@@ -227,7 +287,7 @@ function SettingsViewContent() {
                 </SelectContent>
               </Select>
             </div>
-            {localSettings.models.recommendations === "" || isCustomModel(localSettings.models.recommendations) ? (
+            {(localSettings.models.recommendations === "" || isCustomModel(localSettings.models.recommendations)) && (
               <Input
                 placeholder="Enter custom model name"
                 value={localSettings.models.recommendations}
@@ -235,7 +295,7 @@ function SettingsViewContent() {
                   handleCustomModelChange("recommendations", e.target.value)
                 }
               />
-            ) : null}
+            )}
           </div>
         </CardContent>
         <CardFooter>

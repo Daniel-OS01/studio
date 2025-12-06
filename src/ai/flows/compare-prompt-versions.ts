@@ -53,10 +53,7 @@ const comparePromptVersionsFlow = ai.defineFlow(
     outputSchema: ComparePromptVersionsOutputSchema,
   },
   async ({promptVersion1, promptVersion2, apiKey}) => {
-    let plugins = [];
-    if (apiKey) {
-      plugins.push(googleAI({apiKey}));
-    }
+    const plugins = apiKey ? [googleAI({apiKey})] : [];
     const {output} = await comparePromptVersionsPrompt({promptVersion1, promptVersion2}, {plugins});
     return output!;
   }
