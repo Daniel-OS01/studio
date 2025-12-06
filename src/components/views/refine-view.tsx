@@ -14,7 +14,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import type { AppSettings, Prompt, View } from '@/lib/types';
 import { ChevronRight, Loader2, Save, Wand } from 'lucide-react';
-import React, { useState, useTransition } from 'react';
+import React, { useState, useTransition, useCallback } from 'react';
 import { RefinementWizard } from '../shared/refinement-wizard';
 import { PromptStatusBar } from '../shared/prompt-status-bar';
 import { useLocalStorage } from '@/hooks/use-local-storage';
@@ -47,14 +47,14 @@ export function RefineView({ setView }: RefineViewProps) {
     []
   );
 
-  const getApiKeys = () => {
+  const getApiKeys = useCallback(() => {
     const activeKey = settings.apiKeys?.[settings.activeApiKeyIndex]?.key ?? '';
     const otherKeys =
       settings.apiKeys
         ?.filter((_, i) => i !== settings.activeApiKeyIndex)
         .map((k) => k.key) ?? [];
     return [activeKey, ...otherKeys].filter(Boolean);
-  };
+  }, [settings.apiKeys, settings.activeApiKeyIndex]);
 
   const handleGoToStudio = () => {
     toast({

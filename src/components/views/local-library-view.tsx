@@ -75,6 +75,7 @@ function LocalLibraryViewContent({ setView }: { setView: (view: View) => void })
       analysis: 'gemini-1.5-flash-latest',
       metrics: 'gemini-1.5-flash-latest',
       recommendations: 'gemini-1.5-flash-latest',
+      refine: 'gemini-1.5-flash-latest'
     },
   });
 
