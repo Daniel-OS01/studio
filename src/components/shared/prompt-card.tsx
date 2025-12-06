@@ -18,7 +18,7 @@ interface PromptCardProps {
 
 export function PromptCard({ prompt, actions, isCommunity = false }: PromptCardProps) {
   return (
-    <Card className="flex flex-col">
+    <Card className="flex flex-col h-full">
       <CardHeader>
         <CardTitle className="font-headline">{prompt.name}</CardTitle>
         <CardDescription>
@@ -32,7 +32,7 @@ export function PromptCard({ prompt, actions, isCommunity = false }: PromptCardP
           {prompt.text}
         </p>
       </CardContent>
-      <CardFooter className="flex justify-end gap-2">{actions}</CardFooter>
+      <CardFooter className="flex justify-end gap-2 pt-4">{actions}</CardFooter>
     </Card>
   )
 }

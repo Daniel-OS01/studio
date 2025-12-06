@@ -1,43 +1,98 @@
 
 "use client"
 
-import { PromptCard } from "@/components/shared/prompt-card"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogClose,
-} from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { useToast } from "@/hooks/use-toast"
-import { useLocalStorage } from "@/hooks/use-local-storage"
-import type { Prompt, View } from "@/lib/types"
-import { Download, Upload, Pencil } from "lucide-react"
-import React, { useRef, useState } from "react"
 import { ClientOnly } from "@/components/shared/client-only"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { Textarea } from "@/components/ui/textarea"
+import { useLocalStorage } from "@/hooks/use-local-storage"
+import { useToast } from "@/hooks/use-toast"
+import type { Prompt, View } from "@/lib/types"
+import { cn } from "@/lib/utils"
+import { formatDistanceToNow } from "date-fns"
+import { Plus, Trash2 } from "lucide-react"
+import React, { useEffect, useState } from "react"
 
-interface LocalLibraryViewProps {
-  setView: (view: View) => void;
+interface CompactPromptCardProps {
+  prompt: Prompt
+  isSelected: boolean
+  onClick: () => void
 }
 
-function LocalLibraryViewContent({ setView }: LocalLibraryViewProps) {
+function CompactPromptCard({ prompt, isSelected, onClick }: CompactPromptCardProps) {
+  return (
+    <div
+      onClick={onClick}
+      className={cn(
+        "p-3 rounded-lg border cursor-pointer hover:bg-muted/50",
+        isSelected && "bg-muted border-primary"
+      )}
+    >
+      <div className="flex justify-between items-center mb-1">
+        <h3 className="font-semibold text-sm truncate pr-2">{prompt.name}</h3>
+        <p className="text-xs text-muted-foreground shrink-0">
+          {formatDistanceToNow(new Date(prompt.createdAt), {
+            addSuffix: true,
+          })}
+        </p>
+      </div>
+      <p className="text-xs text-muted-foreground line-clamp-2">
+        {prompt.text}
+      </p>
+    </div>
+  )
+}
+
+function LocalLibraryViewContent({ setView }: { setView: (view: View) => void }) {
   const [prompts, setPrompts] = useLocalStorage<Prompt[]>(
     "prompt-forge-library",
     []
   )
   const [searchTerm, setSearchTerm] = useState("")
-  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [selectedPromptId, setSelectedPromptId] = useState<string | null>(null)
   const { toast } = useToast()
 
-  const [editingPrompt, setEditingPrompt] = useState<Prompt | null>(null)
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+  // Select the first prompt by default if one exists
+  useEffect(() => {
+    if (!selectedPromptId && prompts.length > 0) {
+      setSelectedPromptId(prompts[0].id)
+    }
+     if (selectedPromptId && !prompts.find(p => p.id === selectedPromptId)) {
+        setSelectedPromptId(prompts.length > 0 ? prompts[0].id : null);
+    }
+  }, [prompts, selectedPromptId])
+
+  const handleAddNewPrompt = () => {
+    const newPrompt: Prompt = {
+      id: `prompt_${Date.now()}`,
+      name: "Untitled Prompt",
+      text: "Start writing your new prompt here...",
+      createdAt: new Date().toISOString(),
+    }
+    setPrompts((prev) => [newPrompt, ...prev])
+    setSelectedPromptId(newPrompt.id)
+  }
+  
+  const handleDeletePrompt = (idToDelete: string) => {
+    setPrompts(prompts.filter((p) => p.id !== idToDelete));
+    toast({
+        title: "Prompt Deleted",
+        description: "The prompt has been removed from your library.",
+    });
+  }
+
+  const handlePromptUpdate = (promptId: string, newText: string) => {
+    setPrompts((prev) =>
+      prev.map((p) => (p.id === promptId ? { ...p, text: newText } : p))
+    )
+  }
+  
+  const handleNameUpdate = (promptId: string, newName: string) => {
+     setPrompts((prev) =>
+      prev.map((p) => (p.id === promptId ? { ...p, name: newName } : p))
+    )
+  }
 
   const filteredPrompts = prompts.filter(
     (p) =>
@@ -45,244 +100,100 @@ function LocalLibraryViewContent({ setView }: LocalLibraryViewProps) {
       p.text.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
-  const handleUsePrompt = (prompt: Prompt) => {
-    toast({
-      title: "Prompt Loaded",
-      description: `"${prompt.name}" is ready. Go to the Studio to use it. (This is a demo feature)`,
-    });
-    setView("studio");
-  }
-  
-  const handleOpenEditDialog = (prompt: Prompt) => {
-    setEditingPrompt({ ...prompt });
-    setIsEditDialogOpen(true);
-  }
-
-  const handleSaveChanges = () => {
-    if (!editingPrompt) return;
-
-    setPrompts(prompts.map((p) => p.id === editingPrompt.id ? editingPrompt : p));
-    toast({
-      title: "Prompt Updated",
-      description: `"${editingPrompt.name}" has been successfully updated.`,
-    });
-    setIsEditDialogOpen(false);
-    setEditingPrompt(null);
-  };
-
-
-  const handleDeletePrompt = (id: string) => {
-    setPrompts(prompts.filter((p) => p.id !== id))
-    toast({
-      title: "Prompt Deleted",
-      description: "The prompt has been removed from your library.",
-    })
-  }
-
-  const handleExport = () => {
-    const dataStr = JSON.stringify(prompts, null, 2)
-    const dataUri =
-      "data:application/json;charset=utf-8," + encodeURIComponent(dataStr)
-    const exportFileDefaultName = "prompt-forge-library.json"
-    const linkElement = document.createElement("a")
-    linkElement.setAttribute("href", dataUri)
-    linkElement.setAttribute("download", exportFileDefaultName)
-    linkElement.click()
-    toast({
-      title: "Exporting Library",
-      description: "Your prompt library is being downloaded.",
-    })
-  }
-
-  const handleImportClick = () => {
-    fileInputRef.current?.click()
-  }
-
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
-    if (!file) return
-
-    const reader = new FileReader()
-    reader.onload = (e) => {
-      try {
-        const text = e.target?.result
-        if (typeof text !== "string") throw new Error("Invalid file content")
-        const importedPrompts = JSON.parse(text) as Prompt[]
-
-        if (
-          !Array.isArray(importedPrompts) ||
-          !importedPrompts.every((p) => p.id && p.name && p.text && p.createdAt)
-        ) {
-          throw new Error("Invalid prompt format")
-        }
-
-        const existingIds = new Set(prompts.map((p) => p.id))
-        const newPrompts = importedPrompts.filter((p) => !existingIds.has(p.id))
-        setPrompts([...prompts, ...newPrompts])
-        toast({
-          title: "Import Successful",
-          description: `${newPrompts.length} new prompts added to your library.`,
-        })
-      } catch (error) {
-        toast({
-          title: "Import Failed",
-          description:
-            "The selected file is not a valid prompt library. Please check the file and try again.",
-          variant: "destructive",
-        })
-        console.error("Import error:", error)
-      } finally {
-        if (fileInputRef.current) {
-          fileInputRef.current.value = ""
-        }
-      }
-    }
-    reader.readAsText(file)
-  }
+  const selectedPrompt = prompts.find((p) => p.id === selectedPromptId)
 
   return (
-    <>
-      <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-              <div>
-                  <CardTitle>Manage Prompts</CardTitle>
-                  <CardDescription>Search, import, or export your prompts.</CardDescription>
-              </div>
-               <div className="flex gap-2">
-                  <Button onClick={handleImportClick} variant="outline">
-                      <Upload /> Import
-                  </Button>
-                  <Button onClick={handleExport} disabled={prompts.length === 0}>
-                      <Download /> Export
-                  </Button>
-                  <input
-                      type="file"
-                      ref={fileInputRef}
-                      onChange={handleFileChange}
-                      accept=".json"
-                      className="hidden"
-                  />
-              </div>
-          </CardHeader>
-          <CardContent>
-               <Input
-                  placeholder="Search prompts..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-              />
-          </CardContent>
-      </Card>
+    <main className="grid md:grid-cols-[340px_1fr] flex-1 overflow-hidden">
+      {/* Left Column: Prompt List */}
+      <div className="flex flex-col gap-4 p-4 border-r bg-muted/20">
+        <div className="flex items-center gap-2">
+          <Input
+            placeholder="Search your prompts..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+          <Button onClick={handleAddNewPrompt} size="icon" variant="outline">
+            <Plus className="h-4 w-4" />
+          </Button>
+        </div>
+        <ScrollArea className="flex-1 -mx-4">
+            <div className="px-4 space-y-2 pb-4">
+            {filteredPrompts.length > 0 ? (
+                filteredPrompts.map((prompt) => (
+                <CompactPromptCard
+                    key={prompt.id}
+                    prompt={prompt}
+                    isSelected={prompt.id === selectedPromptId}
+                    onClick={() => setSelectedPromptId(prompt.id)}
+                />
+                ))
+            ) : (
+                <div className="text-center text-sm text-muted-foreground pt-10">
+                    <p>No prompts found.</p>
+                    <p>Click the '+' to add a new one.</p>
+                </div>
+            )}
+            </div>
+        </ScrollArea>
+      </div>
 
-      <div className="flex-1 overflow-auto pr-2">
-        {filteredPrompts.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredPrompts.map((prompt) => (
-              <PromptCard
-                key={prompt.id}
-                prompt={prompt}
-                actions={
-                  <>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleOpenEditDialog(prompt)}
-                    >
-                      <Pencil className="mr-2 h-4 w-4" />
-                      Edit
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleDeletePrompt(prompt.id)}
-                    >
-                      Delete
-                    </Button>
-                    <Button size="sm" onClick={() => handleUsePrompt(prompt)}>
-                      Use
-                    </Button>
-                  </>
+      {/* Right Column: Editor */}
+      <div className="flex flex-col overflow-y-auto">
+        {selectedPrompt ? (
+          <div className="flex-1 flex flex-col">
+            <div className="p-4 border-b">
+                <Input 
+                    value={selectedPrompt.name}
+                    onChange={(e) => handleNameUpdate(selectedPrompt.id, e.target.value)}
+                    className="text-lg font-bold h-auto p-0 border-none focus-visible:ring-0 shadow-none"
+                />
+              <p className="text-sm text-muted-foreground">
+                Just start typing to edit your prompt.
+              </p>
+            </div>
+            <div className="flex-1 p-4">
+              <Textarea
+                value={selectedPrompt.text}
+                onChange={(e) =>
+                  handlePromptUpdate(selectedPrompt.id, e.target.value)
                 }
+                className="w-full h-full resize-none border-none focus-visible:ring-0 p-0"
+                placeholder="Enter your prompt text here..."
               />
-            ))}
+            </div>
+             <div className="p-4 border-t mt-auto flex justify-end">
+                <Button variant="destructive-outline" size="sm" onClick={() => handleDeletePrompt(selectedPrompt.id)}>
+                    <Trash2 className="mr-2 h-4 w-4" /> Delete Prompt
+                </Button>
+             </div>
           </div>
         ) : (
-          <div className="flex flex-col items-center justify-center h-full text-center p-8 border-2 border-dashed rounded-lg">
-            <h3 className="text-lg font-semibold">Your Library is Empty</h3>
-            <p className="text-muted-foreground max-w-sm">
-              Go to the Studio to create and save your first prompt, or import an existing library.
-            </p>
-            <Button className="mt-4" onClick={() => setView("studio")}>Go to Studio</Button>
+          <div className="flex items-center justify-center h-full text-center text-muted-foreground">
+            <p>Select a prompt to view or create a new one.</p>
           </div>
         )}
       </div>
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Edit Prompt</DialogTitle>
-            <DialogDescription>
-              Modify the name and text of your prompt.
-            </DialogDescription>
-          </DialogHeader>
-          {editingPrompt && (
-             <div className="grid gap-4 py-4">
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="name" className="text-right">
-                  Name
-                </Label>
-                <Input
-                  id="name"
-                  value={editingPrompt.name}
-                  onChange={(e) => setEditingPrompt({...editingPrompt, name: e.target.value })}
-                  className="col-span-3"
-                />
-              </div>
-              <div className="grid grid-cols-4 items-start gap-4">
-                <Label htmlFor="text" className="text-right pt-2">
-                  Text
-                </Label>
-                <Textarea
-                  id="text"
-                  value={editingPrompt.text}
-                  onChange={(e) => setEditingPrompt({...editingPrompt, text: e.target.value })}
-                  className="col-span-3 min-h-[150px] resize-y"
-                />
-              </div>
-            </div>
-          )}
-          <DialogFooter>
-            <DialogClose asChild>
-              <Button type="button" variant="secondary">
-                Cancel
-              </Button>
-            </DialogClose>
-            <Button type="button" onClick={handleSaveChanges}>
-              Save Changes
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </>
+    </main>
   )
 }
 
 export function LocalLibraryView({ setView }: LocalLibraryViewProps) {
   return (
     <div className="flex flex-col h-screen bg-background">
-      <header className="p-4 border-b">
-        <h1 className="text-2xl font-headline font-bold text-foreground">
-          My Library
-        </h1>
-        <p className="text-muted-foreground">
-          Your personal collection of crafted prompts.
-        </p>
+      <header className="p-4 border-b flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-headline font-bold text-foreground">
+            Prompt Library
+          </h1>
+          <p className="text-muted-foreground">
+            Your personal collection of crafted prompts.
+          </p>
+        </div>
+        {/* Placeholder for future actions like import/export */}
       </header>
-      <main className="flex-1 flex flex-col p-4 gap-4 overflow-y-auto">
-        <ClientOnly>
-          <LocalLibraryViewContent setView={setView} />
-        </ClientOnly>
-      </main>
+      <ClientOnly>
+        <LocalLibraryViewContent setView={setView} />
+      </ClientOnly>
     </div>
   )
 }
-
-    
