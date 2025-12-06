@@ -8,11 +8,12 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Textarea } from "@/components/ui/textarea"
 import { useLocalStorage } from "@/hooks/use-local-storage"
 import { useToast } from "@/hooks/use-toast"
-import type { Prompt, View } from "@/lib/types"
+import type { AppSettings, Prompt, View } from "@/lib/types"
 import { cn } from "@/lib/utils"
 import { formatDistanceToNow } from "date-fns"
-import { Plus, Trash2 } from "lucide-react"
-import React, { useEffect, useState } from "react"
+import { Plus, Trash2, Sparkles, Loader2 } from "lucide-react"
+import React, { useEffect, useState, useTransition, useCallback } from "react"
+import { generatePromptName } from "@/ai/flows/generate-prompt-name"
 
 interface CompactPromptCardProps {
   prompt: Prompt
@@ -52,6 +53,27 @@ function LocalLibraryViewContent({ setView }: { setView: (view: View) => void })
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedPromptId, setSelectedPromptId] = useState<string | null>(null)
   const { toast } = useToast()
+  const [isGeneratingName, startGeneratingName] = useTransition()
+
+  const [settings] = useLocalStorage<AppSettings>('prompt-forge-settings', {
+    apiKeys: [],
+    activeApiKeyIndex: 0,
+    models: {
+      analysis: 'gemini-2.5-flash',
+      metrics: 'gemini-2.5-flash',
+      recommendations: 'gemini-2.5-flash',
+    },
+  });
+
+  const getApiKeys = useCallback(() => {
+    const activeKey = settings.apiKeys?.[settings.activeApiKeyIndex]?.key ?? '';
+    const otherKeys =
+      settings.apiKeys
+        ?.filter((_, i) => i !== settings.activeApiKeyIndex)
+        .map((k) => k.key) ?? [];
+    return [activeKey, ...otherKeys].filter(Boolean);
+  }, [settings.apiKeys, settings.activeApiKeyIndex]);
+
 
   // Select the first prompt by default if one exists
   useEffect(() => {
@@ -93,6 +115,38 @@ function LocalLibraryViewContent({ setView }: { setView: (view: View) => void })
       prev.map((p) => (p.id === promptId ? { ...p, name: newName } : p))
     )
   }
+
+  const handleGenerateTitle = (prompt: Prompt) => {
+    if (!prompt.text?.trim()) {
+      toast({
+        title: "Prompt is empty",
+        description: "Cannot generate a name for an empty prompt.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    startGeneratingName(async () => {
+      try {
+        const { name } = await generatePromptName({
+          prompt: prompt.text,
+          apiKeys: getApiKeys(),
+          modelName: settings.models.analysis
+        });
+        handleNameUpdate(prompt.id, name);
+        toast({
+          title: "Title Generated!",
+          description: `New title is: "${name}"`,
+        });
+      } catch (error) {
+        toast({
+          title: "Failed to generate title",
+          description: "Could not generate a title. Please check your API key and try again.",
+          variant: "destructive"
+        });
+      }
+    });
+  };
 
   const filteredPrompts = prompts.filter(
     (p) =>
@@ -142,11 +196,17 @@ function LocalLibraryViewContent({ setView }: { setView: (view: View) => void })
         {selectedPrompt ? (
           <div className="flex-1 flex flex-col">
             <div className="p-4 border-b">
-                <Input 
-                    value={selectedPrompt.name}
-                    onChange={(e) => handleNameUpdate(selectedPrompt.id, e.target.value)}
-                    className="text-lg font-bold h-auto p-0 border-none focus-visible:ring-0 shadow-none"
-                />
+                <div className="flex items-center gap-2">
+                  <Input 
+                      value={selectedPrompt.name}
+                      onChange={(e) => handleNameUpdate(selectedPrompt.id, e.target.value)}
+                      className="text-lg font-bold h-auto p-0 border-none focus-visible:ring-0 shadow-none flex-1"
+                  />
+                  <Button variant="ghost" size="sm" onClick={() => handleGenerateTitle(selectedPrompt)} disabled={isGeneratingName}>
+                    {isGeneratingName ? <Loader2 className="animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
+                    Generate Title
+                  </Button>
+                </div>
               <p className="text-sm text-muted-foreground">
                 Just start typing to edit your prompt.
               </p>
@@ -177,7 +237,7 @@ function LocalLibraryViewContent({ setView }: { setView: (view: View) => void })
   )
 }
 
-export function LocalLibraryView({ setView }: LocalLibraryViewProps) {
+export function LocalLibraryView({ setView }: { setView: (view: View) => void }) {
   return (
     <div className="flex flex-col h-screen bg-background">
       <header className="p-4 border-b flex items-center justify-between">
