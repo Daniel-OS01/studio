@@ -2,8 +2,7 @@
 
 import React, { useState, useTransition } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Loader2, Wand, ArrowLeft, ArrowRight, AlertTriangle } from 'lucide-react';
+import { Loader2, Wand, AlertTriangle, RefreshCw } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { refinePrompt } from '@/ai/flows/refine-prompt';
 import type { AppSettings, RefinementStep } from '@/lib/types';
@@ -16,8 +15,7 @@ interface RefinePromptWizardProps {
 
 export function RefinePromptWizard({ promptText, onApplySuggestion }: RefinePromptWizardProps) {
   const [isRefining, startRefining] = useTransition();
-  const [refinementSteps, setRefinementSteps] = useState<RefinementStep[]>([]);
-  const [currentStep, setCurrentStep] = useState(0);
+  const [refinementStep, setRefinementStep] = useState<RefinementStep | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const { toast } = useToast();
@@ -31,7 +29,7 @@ export function RefinePromptWizard({ promptText, onApplySuggestion }: RefineProm
     },
   });
 
-  const handleStartRefining = () => {
+  const handleGetRefinement = () => {
     if (!promptText.trim()) {
       toast({
         title: "Prompt is empty",
@@ -43,7 +41,7 @@ export function RefinePromptWizard({ promptText, onApplySuggestion }: RefineProm
 
     startRefining(async () => {
       setError(null);
-      setRefinementSteps([]);
+      setRefinementStep(null);
       try {
         const activeKey =
           settings.apiKeys?.[settings.activeApiKeyIndex]?.key ?? "";
@@ -57,18 +55,17 @@ export function RefinePromptWizard({ promptText, onApplySuggestion }: RefineProm
           apiKeys: orderedApiKeys.filter(Boolean),
         });
         
-        if (result.refinementSteps && result.refinementSteps.length > 0) {
-          setRefinementSteps(result.refinementSteps);
-          setCurrentStep(0);
+        if (result) {
+          setRefinementStep(result);
         } else {
-            setError("Could not generate refinement suggestions. The AI may not have found specific ways to improve this prompt.");
+            setError("Could not generate a refinement suggestion. The AI may not have found specific ways to improve this prompt.");
         }
       } catch (e) {
         console.error(e);
-        setError("An error occurred while generating refinement steps. Please check your API key and try again.");
+        setError("An error occurred while generating a refinement step. Please check your API key and try again.");
         toast({
           title: "Refinement Failed",
-          description: "Could not generate refinement suggestions. Please try again later.",
+          description: "Could not generate a refinement suggestion. Please try again later.",
           variant: "destructive",
         });
       }
@@ -77,13 +74,14 @@ export function RefinePromptWizard({ promptText, onApplySuggestion }: RefineProm
 
   const handleOptionClick = (text: string) => {
     onApplySuggestion(text);
+    setRefinementStep(null); // Clear the step to show the "Refine Further" button
     toast({
         title: "Suggestion Applied",
         description: "The refinement has been added to your prompt.",
     });
   };
 
-  const stepData = refinementSteps[currentStep];
+  const stepData = refinementStep;
 
   if (isRefining) {
     return (
@@ -94,17 +92,17 @@ export function RefinePromptWizard({ promptText, onApplySuggestion }: RefineProm
     );
   }
 
-  if (error && refinementSteps.length === 0) {
+  if (error && !refinementStep) {
       return (
           <div className="flex flex-col items-center justify-center h-full gap-2 text-destructive">
               <AlertTriangle className="h-8 w-8" />
               <p className='text-center max-w-sm'>{error}</p>
-              <Button onClick={handleStartRefining} variant="secondary">Try Again</Button>
+              <Button onClick={handleGetRefinement} variant="secondary">Try Again</Button>
           </div>
       )
   }
 
-  if (refinementSteps.length === 0) {
+  if (!stepData) {
     return (
       <div className="flex flex-col items-center justify-center h-full text-center p-4">
         <Wand className="h-12 w-12 text-muted-foreground mb-4" />
@@ -112,7 +110,7 @@ export function RefinePromptWizard({ promptText, onApplySuggestion }: RefineProm
         <p className="text-muted-foreground max-w-sm mb-6">
           Start an interactive wizard that will ask you questions to help improve and add detail to your prompt.
         </p>
-        <Button onClick={handleStartRefining} disabled={isRefining}>
+        <Button onClick={handleGetRefinement} disabled={isRefining}>
           {isRefining ? <Loader2 className="animate-spin" /> : <Wand />}
           Start Refining
         </Button>
@@ -140,24 +138,15 @@ export function RefinePromptWizard({ promptText, onApplySuggestion }: RefineProm
             ))}
         </div>
         
-        <div className="flex items-center justify-between mt-4">
+        <div className="flex items-center justify-end mt-4">
             <Button 
                 variant="ghost" 
-                onClick={() => setCurrentStep(s => s-1)} 
-                disabled={currentStep === 0}
+                onClick={handleGetRefinement}
+                disabled={isRefining}
             >
-                <ArrowLeft /> Back
-            </Button>
-            <p className='text-sm text-muted-foreground'>Step {currentStep + 1} of {refinementSteps.length}</p>
-            <Button 
-                variant="ghost" 
-                onClick={() => setCurrentStep(s => s+1)} 
-                disabled={currentStep === refinementSteps.length - 1}
-            >
-                Next <ArrowRight />
+                <RefreshCw className="mr-2 h-4 w-4" /> Get another suggestion
             </Button>
         </div>
-
     </div>
   );
 }

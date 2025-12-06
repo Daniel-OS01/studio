@@ -1,8 +1,8 @@
 'use server';
 /**
- * @fileOverview A flow to generate a series of refinement suggestions for a given prompt.
+ * @fileOverview A flow to generate a single, interactive refinement step for a given prompt.
  *
- * - refinePrompt - A function that generates prompt refinement steps.
+ * - refinePrompt - A function that generates one prompt refinement step.
  * - RefinePromptInput - The input type for the refinePrompt function.
  * - RefinePromptOutput - The return type for the refinePrompt function.
  */
@@ -27,7 +27,7 @@ const RefinementOptionSchema = z.object({
     .describe('The text to be appended to the prompt if this option is chosen.'),
 });
 
-const RefinementStepSchema = z.object({
+const RefinePromptOutputSchema = z.object({
   title: z
     .string()
     .describe('The question or title for this refinement step.'),
@@ -36,15 +36,10 @@ const RefinementStepSchema = z.object({
     .describe('A brief explanation of why this refinement is useful.'),
   options: z
     .array(RefinementOptionSchema)
-    .describe('A list of interactive options for the user to choose from.'),
-});
-
-const RefinePromptOutputSchema = z.object({
-  refinementSteps: z
-    .array(RefinementStepSchema)
-    .max(3)
+    .min(3)
+    .max(5)
     .describe(
-      'An array of up to 3 interactive refinement steps to improve the prompt.'
+      'A list of 3-5 interactive options for the user to choose from.'
     ),
 });
 
@@ -68,27 +63,27 @@ const refinePromptFlow = async ({ prompt, apiKeys }: RefinePromptInput) => {
       });
 
       const { output } = await localAi.generate({
-        prompt: `You are an expert prompt engineer. Your task is to analyze the user's prompt and generate a series of up to 3 interactive refinement questions to help them improve it. Each question should help clarify their intent and add important details.
+        prompt: `You are an expert prompt engineer. Your task is to analyze the user's prompt and generate a *single* interactive refinement question to help them improve it. The question should help clarify their intent and add important details from a specific perspective (e.g., audience, format, tone, detail).
 
-        For each step, provide:
-        1. A clear 'title' for the question (e.g., "What is the desired tone for the response?").
-        2. A brief 'explanation' of why this question is important.
-        3. A list of 4-5 'options', where each option has a 'title' (for a button) and the corresponding 'text' that should be appended to the original prompt.
+        For this single step, provide:
+        1. A clear 'title' for the question (e.g., "Who is the target audience?").
+        2. A brief 'explanation' of why this question is important for improving the prompt.
+        3. A list of 4-5 diverse 'options', where each option has a 'title' (for a button) and the corresponding 'text' that should be appended to the original prompt.
         
-        Example Input Prompt: "Write a short story."
-        Example Output Step 1:
+        Example Input Prompt: "Write a short story about a dragon."
+        Example Output:
         {
-          "title": "What genre should the story be?",
-          "explanation": "Specifying a genre helps set the mood and style of the story.",
+          "title": "What kind of dragon is it?",
+          "explanation": "Defining the dragon's nature will shape the story's conflict and character.",
           "options": [
-            { "title": "Mystery", "text": " The story should be a mystery." },
-            { "title": "Science Fiction", "text": " The story should be science fiction." },
-            { "title": "Fantasy", "text": " The story should be a fantasy." },
-            { "title": "Horror", "text": " The story should be a horror." }
+            { "title": "A wise, ancient dragon", "text": " The story should feature a wise, ancient dragon." },
+            { "title": "A young, reckless dragon", "text": " The story should feature a young, reckless dragon." },
+            { "title": "A misunderstood, gentle dragon", "text": " The story should feature a misunderstood, gentle dragon." },
+            { "title": "A greedy, treasure-hoarding dragon", "text": " The story should feature a greedy, treasure-hoarding dragon." }
           ]
         }
         
-        Analyze the following prompt and generate the refinement steps.
+        Analyze the following prompt and generate ONE refinement step. Do not generate an array of steps.
         
         Prompt:
         ${prompt}`,

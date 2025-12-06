@@ -24,7 +24,7 @@ export type PromptAnalysis = AnalyzeAndSuggestImprovementsOutput
 export type PromptRecommendations = OptimizePromptRecommendationsOutput
 export type PromptComparison = ComparePromptVersionsOutput
 
-export type RefinementStep = RefinePromptOutput["refinementSteps"][0]
+export type RefinementStep = RefinePromptOutput
 
 export type View = "studio" | "local-library" | "community-library" | "settings"
 
