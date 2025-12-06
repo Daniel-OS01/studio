@@ -4,24 +4,27 @@ import { useState } from "react"
 import {
   Bot,
   Library,
+  Settings,
   Users,
 } from "lucide-react"
 
 import {
   Sidebar,
+  SidebarFooter,
   SidebarHeader,
   SidebarInset,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarProvider,
+  SidebarSeparator,
 } from "@/components/ui/sidebar"
 import { CommunityLibraryView } from "@/components/views/community-library-view"
 import { LocalLibraryView } from "@/components/views/local-library-view"
+import { SettingsView } from "@/components/views/settings-view"
 import { StudioView } from "@/components/views/studio-view"
 import { Logo } from "@/components/icons"
-
-type View = "studio" | "local-library" | "community-library"
+import type { View } from "@/lib/types"
 
 export default function Home() {
   const [activeView, setActiveView] = useState<View>("studio")
@@ -34,6 +37,8 @@ export default function Home() {
         return <LocalLibraryView setView={setActiveView} />
       case "community-library":
         return <CommunityLibraryView setView={setActiveView} />
+      case "settings":
+        return <SettingsView />
       default:
         return <StudioView />
     }
@@ -82,6 +87,21 @@ export default function Home() {
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
+        <SidebarFooter className="mt-auto">
+          <SidebarSeparator />
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                onClick={() => setActiveView("settings")}
+                isActive={activeView === "settings"}
+                tooltip="Settings"
+              >
+                <Settings />
+                <span>Settings</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarFooter>
       </Sidebar>
       <SidebarInset>{renderView()}</SidebarInset>
     </SidebarProvider>

@@ -15,6 +15,7 @@ import {z} from 'genkit';
 const OptimizePromptRecommendationsInputSchema = z.object({
   promptText: z.string().describe('The prompt text to be optimized.'),
   apiKey: z.string().optional().describe('An optional Google API key.'),
+  modelName: z.string().optional().describe('An optional Gemini model name.'),
 });
 
 export type OptimizePromptRecommendationsInput = z.infer<typeof OptimizePromptRecommendationsInputSchema>;
@@ -84,14 +85,13 @@ const optimizePromptRecommendationsFlow = ai.defineFlow(
     inputSchema: OptimizePromptRecommendationsInputSchema,
     outputSchema: OptimizePromptRecommendationsOutputSchema,
   },
-  async ({promptText, apiKey}) => {
+  async ({promptText, apiKey, modelName}) => {
     let plugins = [];
     if (apiKey) {
       plugins.push(googleAI({apiKey}));
     }
-    const {output} = await prompt({promptText}, {plugins});
+    const model = modelName ? googleAI.model(modelName) : undefined;
+    const {output} = await prompt({promptText}, {plugins, model});
     return output!;
   }
 );
-
-    

@@ -22,4 +22,13 @@ export type PromptAnalysis = AnalyzeAndSuggestImprovementsOutput
 export type PromptRecommendations = OptimizePromptRecommendationsOutput
 export type PromptComparison = ComparePromptVersionsOutput
 
-export type View = "studio" | "local-library" | "community-library"
+export type View = "studio" | "local-library" | "community-library" | "settings"
+
+export type AppSettings = {
+  apiKey: string
+  models: {
+    analysis: string
+    metrics: string
+    recommendations: string
+  }
+}

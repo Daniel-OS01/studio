@@ -15,6 +15,7 @@ import {z} from 'genkit';
 const AnalyzeAndSuggestImprovementsInputSchema = z.object({
   prompt: z.string().describe('The prompt to analyze and improve.'),
   apiKey: z.string().optional().describe('An optional Google API key.'),
+  modelName: z.string().optional().describe('An optional Gemini model name.'),
 });
 export type AnalyzeAndSuggestImprovementsInput = z.infer<
   typeof AnalyzeAndSuggestImprovementsInputSchema
@@ -53,14 +54,13 @@ const analyzeAndSuggestImprovementsFlow = ai.defineFlow(
     inputSchema: AnalyzeAndSuggestImprovementsInputSchema,
     outputSchema: AnalyzeAndSuggestImprovementsOutputSchema,
   },
-  async ({prompt: promptText, apiKey}) => {
+  async ({prompt: promptText, apiKey, modelName}) => {
     let plugins = [];
     if (apiKey) {
       plugins.push(googleAI({apiKey}));
     }
-    const {output} = await prompt({prompt: promptText}, {plugins});
+    const model = modelName ? googleAI.model(modelName) : undefined;
+    const {output} = await prompt({prompt: promptText}, {plugins, model});
     return output!;
   }
 );
-
-    
