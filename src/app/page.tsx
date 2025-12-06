@@ -24,7 +24,7 @@ import { ClientOnly } from "@/components/shared/client-only"
 import { RefineView } from "@/components/views/refine-view"
 
 export default function Home() {
-  const [activeView, setActiveView] = useState<View>("studio")
+  const [activeView, setActiveView] = useState<View>("refine")
 
   const renderView = () => {
     switch (activeView) {
@@ -39,7 +39,7 @@ export default function Home() {
       case "settings":
         return <SettingsView />
       default:
-        return <StudioView setView={setActiveView} />
+        return <RefineView setView={setActiveView} />
     }
   }
 
@@ -58,22 +58,22 @@ export default function Home() {
           <SidebarMenu>
             <SidebarMenuItem>
               <SidebarMenuButton
-                onClick={() => setActiveView("studio")}
-                isActive={activeView === "studio"}
-                tooltip="Studio"
-              >
-                <Bot />
-                <span>Studio</span>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-             <SidebarMenuItem>
-              <SidebarMenuButton
                 onClick={() => setActiveView("refine")}
                 isActive={activeView === "refine"}
                 tooltip="Refine"
               >
                 <Wand />
                 <span>Refine</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                onClick={() => setActiveView("studio")}
+                isActive={activeView === "studio"}
+                tooltip="Studio"
+              >
+                <Bot />
+                <span>Studio</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>

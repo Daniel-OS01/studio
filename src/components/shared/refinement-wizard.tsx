@@ -359,58 +359,60 @@ export function RefinementWizard({
 
       case 'suggestions':
         return (
-          <div className="space-y-4">
-            <Button onClick={handleBack} variant="ghost" size="sm" className="mb-2">
+          <div className="space-y-4 h-full flex flex-col">
+            <Button onClick={handleBack} variant="ghost" size="sm" className="mb-2 shrink-0">
               <ArrowLeft className="mr-2 h-4 w-4" /> Back
             </Button>
-            <Accordion
-              type="single"
-              collapsible
-              className="w-full"
-              defaultValue="item-0"
-            >
-              {step.data.map((question, qIndex) => (
-                <AccordionItem value={`item-${qIndex}`} key={qIndex}>
-                  <AccordionTrigger>
-                    <div className="text-left">
-                      <h4 className="font-semibold">{question.title}</h4>
-                      <p className="text-sm text-muted-foreground font-normal">
-                        {question.explanation}
-                      </p>
-                    </div>
-                  </AccordionTrigger>
-                  <AccordionContent>
-                    <div className="space-y-2">
-                      {question.options.map((option, oIndex) => (
-                        <Card
-                          key={oIndex}
-                          className="cursor-pointer hover:bg-accent hover:text-accent-foreground transition-colors group"
-                          onClick={() => handleSuggestionApply(option.text)}
-                        >
-                          <CardHeader className="p-4">
-                            <CardTitle className="text-base font-semibold flex items-center justify-between">
-                              {option.title}
-                              <Button
-                                size="sm"
-                                variant="secondary"
-                                className="opacity-0 group-hover:opacity-100 transition-opacity"
-                              >
-                                Apply
-                              </Button>
-                            </CardTitle>
-                          </CardHeader>
-                          <CardContent className="p-4 pt-0">
-                            <p className="text-xs font-style: italic text-muted-foreground/80 group-hover:text-accent-foreground/80">
-                              Example: {option.example}
-                            </p>
-                          </CardContent>
-                        </Card>
-                      ))}
-                    </div>
-                  </AccordionContent>
-                </AccordionItem>
-              ))}
-            </Accordion>
+            <div className="flex-1 overflow-y-auto pr-2">
+              <Accordion
+                type="single"
+                collapsible
+                className="w-full"
+                defaultValue="item-0"
+              >
+                {step.data.map((question, qIndex) => (
+                  <AccordionItem value={`item-${qIndex}`} key={qIndex}>
+                    <AccordionTrigger>
+                      <div className="text-left">
+                        <h4 className="font-semibold">{question.title}</h4>
+                        <p className="text-sm text-muted-foreground font-normal">
+                          {question.explanation}
+                        </p>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent>
+                      <div className="space-y-2">
+                        {question.options.map((option, oIndex) => (
+                          <Card
+                            key={oIndex}
+                            className="cursor-pointer hover:bg-accent hover:text-accent-foreground transition-colors group"
+                            onClick={() => handleSuggestionApply(option.text)}
+                          >
+                            <CardHeader className="p-4">
+                              <CardTitle className="text-base font-semibold flex items-center justify-between">
+                                {option.title}
+                                <Button
+                                  size="sm"
+                                  variant="secondary"
+                                  className="opacity-0 group-hover:opacity-100 transition-opacity"
+                                >
+                                  Apply
+                                </Button>
+                              </CardTitle>
+                            </CardHeader>
+                            <CardContent className="p-4 pt-0">
+                              <p className="text-xs font-style: italic text-muted-foreground/80 group-hover:text-accent-foreground/80">
+                                Example: {option.example}
+                              </p>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                ))}
+              </Accordion>
+            </div>
           </div>
         );
 
