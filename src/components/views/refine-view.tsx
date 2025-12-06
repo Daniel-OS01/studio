@@ -50,7 +50,7 @@ export function RefineView({ setView }: RefineViewProps) {
         </p>
       </header>
 
-      <main className="flex-1 grid md:grid-cols-2 gap-4 p-4 overflow-auto">
+      <main className="flex-1 grid md:grid-cols-2 gap-4 p-4 overflow-hidden">
         {/* Left Panel: Prompt Input & Display */}
         <Card className="flex flex-col">
           <CardHeader>
@@ -72,12 +72,13 @@ export function RefineView({ setView }: RefineViewProps) {
               />
             </div>
           </CardContent>
-          <div className="flex items-center justify-between gap-4 p-2 m-4 mt-0 rounded-md bg-muted/50 border">
+          <div className="flex items-center gap-4 p-4 border-t">
             <PromptStatusBar />
             <Button
               onClick={handleGoToStudio}
               variant="outline"
               disabled={!promptText}
+              className="ml-auto"
             >
               Use in Studio <ChevronRight />
             </Button>
