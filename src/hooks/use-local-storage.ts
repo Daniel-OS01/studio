@@ -40,10 +40,6 @@ export function useLocalStorage<T>(
   }
 
   useEffect(() => {
-    setStoredValue(readValue())
-  }, [readValue])
-
-  useEffect(() => {
     const handleStorageChange = () => {
       setStoredValue(readValue())
     }
