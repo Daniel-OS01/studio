@@ -288,7 +288,7 @@ export function StudioView() {
                 max={2048}
                 step={1}
                 value={promptLength}
-                onValueChange={setPromptLength}
+                onValueChange={(value) => setPromptLength(value)}
               />
             </div>
             <div className="flex flex-wrap gap-2">
