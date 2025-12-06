@@ -91,7 +91,7 @@ export function RefineView({ setView }: RefineViewProps) {
               Follow the steps to improve your prompt.
             </CardDescription>
           </CardHeader>
-          <CardContent className="flex-1 overflow-y-auto">
+          <CardContent className="flex flex-col flex-1 overflow-y-auto">
             <RefinementWizard
               initialPrompt={promptText}
               onPromptUpdate={setPromptText}
