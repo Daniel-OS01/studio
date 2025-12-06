@@ -34,9 +34,9 @@ export function RefineView({ setView }: RefineViewProps) {
     apiKeys: [],
     activeApiKeyIndex: 0,
     models: {
-      analysis: 'gemini-2.5-flash',
-      metrics: 'gemini-2.5-flash',
-      recommendations: 'gemini-2.5-flash',
+      analysis: 'gemini-1.5-flash-latest',
+      metrics: 'gemini-1.5-flash-latest',
+      recommendations: 'gemini-1.5-flash-latest',
     },
   });
 

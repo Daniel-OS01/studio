@@ -30,10 +30,9 @@ import React, { useEffect, useState } from "react"
 import { format } from "date-fns"
 
 const availableModels = [
-  "gemini-2.5-flash",
+  "gemini-1.5-flash-latest",
   "gemini-pro",
   "gemini-1.5-pro-latest",
-  "gemini-1.5-flash-latest",
 ]
 
 const customModelValue = "custom"
@@ -47,9 +46,9 @@ function SettingsViewContent() {
       apiKeys: [],
       activeApiKeyIndex: 0,
       models: {
-        analysis: "gemini-2.5-flash",
-        metrics: "gemini-2.5-flash",
-        recommendations: "gemini-2.5-flash",
+        analysis: 'gemini-1.5-flash-latest',
+        metrics: 'gemini-1.5-flash-latest',
+        recommendations: 'gemini-1.5-flash-latest',
       },
     }
   )
