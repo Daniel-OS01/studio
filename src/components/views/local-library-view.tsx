@@ -14,25 +14,25 @@ import { formatDistanceToNow } from "date-fns"
 import { Plus, Trash2, Sparkles, Loader2, Copy, Edit } from "lucide-react"
 import React, { useEffect, useState, useTransition, useCallback } from "react"
 import { generatePromptName } from "@/ai/flows/generate-prompt-name"
+import ReactMarkdown from "react-markdown"
 
 interface CompactPromptCardProps {
   prompt: Prompt
   isSelected: boolean
   onClick: () => void
-  onCopy: () => void
 }
 
-function CompactPromptCard({ prompt, isSelected, onClick, onCopy }: CompactPromptCardProps) {
+function CompactPromptCard({ prompt, isSelected, onClick }: CompactPromptCardProps) {
   return (
     <div
       className={cn(
         "p-3 rounded-lg border cursor-pointer hover:bg-muted/50 relative group",
-        isSelected && "bg-muted border-primary"
+        isSelected && "bg-muted ring-2 ring-primary"
       )}
       onClick={onClick}
     >
       <div className="flex justify-between items-start mb-1">
-        <h3 className="font-semibold text-sm truncate pr-16">{prompt.name}</h3>
+        <h3 className="font-semibold text-sm truncate pr-4">{prompt.name}</h3>
         <p className="text-xs text-muted-foreground shrink-0">
           {formatDistanceToNow(new Date(prompt.createdAt), {
             addSuffix: true,
@@ -42,14 +42,6 @@ function CompactPromptCard({ prompt, isSelected, onClick, onCopy }: CompactPromp
       <p className="text-xs text-muted-foreground line-clamp-2">
         {prompt.text}
       </p>
-      <div className="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); onCopy()}}>
-          <Copy className="h-4 w-4" />
-        </Button>
-        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); onClick()}}>
-          <Edit className="h-4 w-4" />
-        </Button>
-      </div>
     </div>
   )
 }
@@ -61,6 +53,8 @@ function LocalLibraryViewContent({ setView }: { setView: (view: View) => void })
   )
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedPromptId, setSelectedPromptId] = useState<string | null>(null)
+  const [isEditing, setIsEditing] = useState(false);
+  
   const { toast } = useToast()
   const [isGeneratingName, startGeneratingName] = useTransition()
 
@@ -86,13 +80,19 @@ function LocalLibraryViewContent({ setView }: { setView: (view: View) => void })
 
   // Select the first prompt by default if one exists
   useEffect(() => {
-    if (!selectedPromptId && prompts.length > 0) {
-      setSelectedPromptId(prompts[0].id)
+    const filtered = prompts.filter(
+      (p) =>
+        p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        p.text.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+    if (selectedPromptId && !filtered.find(p => p.id === selectedPromptId)) {
+        setSelectedPromptId(filtered.length > 0 ? filtered[0].id : null);
+    } else if (!selectedPromptId && filtered.length > 0) {
+        setSelectedPromptId(filtered[0].id);
     }
-     if (selectedPromptId && !prompts.find(p => p.id === selectedPromptId)) {
-        setSelectedPromptId(prompts.length > 0 ? prompts[0].id : null);
-    }
-  }, [prompts, selectedPromptId])
+
+  }, [prompts, searchTerm, selectedPromptId]);
 
   const handleAddNewPrompt = () => {
     const newPrompt: Prompt = {
@@ -103,6 +103,7 @@ function LocalLibraryViewContent({ setView }: { setView: (view: View) => void })
     }
     setPrompts((prev) => [newPrompt, ...prev])
     setSelectedPromptId(newPrompt.id)
+    setIsEditing(true);
   }
   
   const handleDeletePrompt = (idToDelete: string) => {
@@ -157,11 +158,11 @@ function LocalLibraryViewContent({ setView }: { setView: (view: View) => void })
     });
   };
 
-  const handleCopyPrompt = (prompt: Prompt) => {
-    navigator.clipboard.writeText(prompt.text);
+  const handleCopyPrompt = (promptText: string) => {
+    navigator.clipboard.writeText(promptText);
     toast({
       title: "Prompt Copied",
-      description: `"${prompt.name}" has been copied to your clipboard.`,
+      description: `Prompt content has been copied to your clipboard.`,
     });
   };
 
@@ -169,95 +170,12 @@ function LocalLibraryViewContent({ setView }: { setView: (view: View) => void })
     (p) =>
       p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       p.text.toLowerCase().includes(searchTerm.toLowerCase())
-  )
+  ).sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
   const selectedPrompt = prompts.find((p) => p.id === selectedPromptId)
 
   return (
-    <main className="grid md:grid-cols-[340px_1fr] flex-1 overflow-y-auto">
-      {/* Left Column: Prompt List */}
-      <div className="flex flex-col gap-4 p-4 border-r bg-muted/20">
-        <div className="flex items-center gap-2">
-          <Input
-            placeholder="Search your prompts..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-          <Button onClick={handleAddNewPrompt} size="icon" variant="outline">
-            <Plus className="h-4 w-4" />
-          </Button>
-        </div>
-        <ScrollArea className="flex-1 -mx-4">
-            <div className="px-4 space-y-2 pb-4">
-            {filteredPrompts.length > 0 ? (
-                filteredPrompts.map((prompt) => (
-                <CompactPromptCard
-                    key={prompt.id}
-                    prompt={prompt}
-                    isSelected={prompt.id === selectedPromptId}
-                    onClick={() => setSelectedPromptId(prompt.id)}
-                    onCopy={() => handleCopyPrompt(prompt)}
-                />
-                ))
-            ) : (
-                <div className="text-center text-sm text-muted-foreground pt-10">
-                    <p>No prompts found.</p>
-                    <p>Click the '+' to add a new one.</p>
-                </div>
-            )}
-            </div>
-        </ScrollArea>
-      </div>
-
-      {/* Right Column: Editor */}
-      <div className="flex flex-col overflow-y-auto">
-        {selectedPrompt ? (
-          <div className="flex-1 flex flex-col">
-            <div className="p-4 border-b">
-                <div className="flex items-center gap-2">
-                  <Input 
-                      value={selectedPrompt.name}
-                      onChange={(e) => handleNameUpdate(selectedPrompt.id, e.target.value)}
-                      className="text-lg font-bold h-auto p-0 border-none focus-visible:ring-0 shadow-none flex-1"
-                  />
-                  <Button variant="ghost" size="sm" onClick={() => handleGenerateTitle(selectedPrompt)} disabled={isGeneratingName}>
-                    {isGeneratingName ? <Loader2 className="animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
-                    Generate Title
-                  </Button>
-                </div>
-              <p className="text-sm text-muted-foreground">
-                Just start typing to edit your prompt.
-              </p>
-            </div>
-            <div className="flex-1 p-4">
-              <Textarea
-                value={selectedPrompt.text}
-                onChange={(e) =>
-                  handlePromptUpdate(selectedPrompt.id, e.target.value)
-                }
-                className="w-full h-full resize-none border-none focus-visible:ring-0 p-0"
-                placeholder="Enter your prompt text here..."
-              />
-            </div>
-             <div className="p-4 border-t mt-auto flex justify-end">
-                <Button variant="destructive" size="sm" onClick={() => handleDeletePrompt(selectedPrompt.id)}>
-                    <Trash2 className="mr-2 h-4 w-4" /> Delete Prompt
-                </Button>
-             </div>
-          </div>
-        ) : (
-          <div className="flex items-center justify-center h-full text-center text-muted-foreground">
-            <p>Select a prompt to view or create a new one.</p>
-          </div>
-        )}
-      </div>
-    </main>
-  )
-}
-
-export function LocalLibraryView({ setView }: { setView: (view: View) => void }) {
-  return (
-    <div className="flex flex-col h-screen bg-background">
+      <div className="flex flex-col h-screen bg-background">
       <header className="p-4 border-b flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-headline font-bold text-foreground">
@@ -267,11 +185,110 @@ export function LocalLibraryView({ setView }: { setView: (view: View) => void })
             Your personal collection of crafted prompts.
           </p>
         </div>
-        {/* Placeholder for future actions like import/export */}
       </header>
-      <ClientOnly>
-        <LocalLibraryViewContent setView={setView} />
-      </ClientOnly>
+       <main className="grid md:grid-cols-[340px_1fr] flex-1 overflow-y-auto">
+        {/* Left Column: Prompt List */}
+        <div className="flex flex-col gap-4 p-4 border-r bg-background">
+          <div className="flex items-center gap-2">
+            <Input
+              placeholder="Search your prompts..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+            <Button onClick={handleAddNewPrompt} size="sm" variant="outline" className="gap-1.5">
+              <Plus className="h-4 w-4" />
+              New
+            </Button>
+          </div>
+          <ScrollArea className="flex-1 -mx-4">
+              <div className="px-4 space-y-2 pb-4">
+              {filteredPrompts.length > 0 ? (
+                  filteredPrompts.map((prompt) => (
+                  <CompactPromptCard
+                      key={prompt.id}
+                      prompt={prompt}
+                      isSelected={prompt.id === selectedPromptId}
+                      onClick={() => {
+                        setSelectedPromptId(prompt.id);
+                        setIsEditing(false);
+                      }}
+                  />
+                  ))
+              ) : (
+                  <div className="text-center text-sm text-muted-foreground pt-10">
+                      <p>No prompts found.</p>
+                      <p>Click 'New' to add one.</p>
+                  </div>
+              )}
+              </div>
+          </ScrollArea>
+        </div>
+
+        {/* Right Column: Editor/Viewer */}
+        <div className="flex flex-col overflow-y-auto">
+          {selectedPrompt ? (
+            <div className="flex-1 flex flex-col">
+              <div className="p-4 border-b space-y-1">
+                  <div className="flex items-center gap-2">
+                    <Input 
+                        value={selectedPrompt.name}
+                        onChange={(e) => handleNameUpdate(selectedPrompt.id, e.target.value)}
+                        className="text-lg font-bold h-auto p-0 border-none focus-visible:ring-0 shadow-none flex-1 bg-transparent"
+                    />
+                    <Button variant="ghost" size="sm" onClick={() => handleGenerateTitle(selectedPrompt)} disabled={isGeneratingName}>
+                      {isGeneratingName ? <Loader2 className="animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
+                      Generate
+                    </Button>
+                  </div>
+                <p className="text-sm text-muted-foreground">
+                  {isEditing ? 'Just start typing to edit your prompt.' : 'Click the edit button to start making changes.'}
+                </p>
+              </div>
+              <div className="flex-1 p-4 prose prose-sm max-w-none">
+                {isEditing ? (
+                  <Textarea
+                    value={selectedPrompt.text}
+                    onChange={(e) =>
+                      handlePromptUpdate(selectedPrompt.id, e.target.value)
+                    }
+                    className="w-full h-full resize-none border-none focus-visible:ring-0 p-0 bg-transparent"
+                    placeholder="Enter your prompt text here..."
+                    autoFocus
+                  />
+                ) : (
+                    <ReactMarkdown className="w-full h-full p-0 bg-transparent">{selectedPrompt.text}</ReactMarkdown>
+                )}
+              </div>
+               <div className="p-4 border-t mt-auto flex justify-end items-center gap-2">
+                  <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => handleDeletePrompt(selectedPrompt.id)}>
+                      <Trash2 className="mr-2 h-4 w-4" /> Delete Prompt
+                  </Button>
+                  <div className="flex-grow" />
+                  <Button variant="outline" size="sm" onClick={() => handleCopyPrompt(selectedPrompt.text)}>
+                    <Copy className="mr-2 h-4 w-4" />
+                    Copy
+                  </Button>
+                  <Button size="sm" onClick={() => setIsEditing(!isEditing)} >
+                      <Edit className="mr-2 h-4 w-4" /> 
+                      {isEditing ? 'Finish Editing' : 'Edit Prompt'}
+                  </Button>
+               </div>
+            </div>
+          ) : (
+            <div className="flex items-center justify-center h-full text-center text-muted-foreground">
+              <p>Select a prompt to view or create a new one.</p>
+            </div>
+          )}
+        </div>
+      </main>
     </div>
+  )
+}
+
+export function LocalLibraryView({ setView }: { setView: (view: View) => void }) {
+  return (
+    <ClientOnly>
+      <LocalLibraryViewContent setView={setView} />
+    </ClientOnly>
   )
 }
