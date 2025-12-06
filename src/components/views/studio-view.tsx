@@ -513,5 +513,3 @@ export function StudioView() {
     </div>
   )
 }
-
-    
