@@ -28,7 +28,6 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
-import { Slider } from "@/components/ui/slider"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/hooks/use-toast"
@@ -282,13 +281,15 @@ export function StudioView() {
               <Label htmlFor="prompt-length">
                 Desired Length: {promptLength} tokens
               </Label>
-              <Slider
+              <Input
                 id="prompt-length"
+                type="number"
                 min={50}
                 max={2048}
                 step={1}
-                value={[promptLength]}
-                onValueChange={(value) => setPromptLength(value[0])}
+                value={promptLength}
+                onChange={(e) => setPromptLength(parseInt(e.target.value, 10) || 0)}
+                className="w-48"
               />
             </div>
             <div className="flex flex-wrap gap-2">
@@ -513,3 +514,5 @@ export function StudioView() {
     </div>
   )
 }
+
+    
