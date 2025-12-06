@@ -26,7 +26,6 @@ const GenerateRefinementOptionsInputSchema = z.object({
     .array(z.string())
     .optional()
     .describe('An optional list of Google API keys to try.'),
-  modelName: z.string().optional().describe('An optional Gemini model name.'),
 });
 export type GenerateRefinementOptionsInput = z.infer<
   typeof GenerateRefinementOptionsInputSchema
@@ -73,10 +72,9 @@ const generateRefinementOptionsFlow = async ({
   topic,
   history,
   apiKeys,
-  modelName,
 }: GenerateRefinementOptionsInput) => {
   const keysToTry = apiKeys?.length ? apiKeys : [process.env.GEMINI_API_KEY];
-  const model = modelName ? googleAI.model(modelName) : googleAI.model('gemini-1.5-flash-latest');
+  const model = googleAI.model('gemini-1.5-flash-latest');
 
   for (const key of keysToTry) {
     if (!key) continue;

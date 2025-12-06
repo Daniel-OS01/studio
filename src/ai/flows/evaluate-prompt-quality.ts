@@ -15,7 +15,6 @@ import {z} from 'genkit';
 const EvaluatePromptQualityInputSchema = z.object({
   prompt: z.string().describe('The prompt to evaluate.'),
   apiKeys: z.array(z.string()).optional().describe('An optional list of Google API keys to try.'),
-  modelName: z.string().optional().describe('An optional Gemini model name.'),
 });
 
 export type EvaluatePromptQualityInput = z.infer<typeof EvaluatePromptQualityInputSchema>;
@@ -34,9 +33,9 @@ export async function evaluatePromptQuality(
   return evaluatePromptQualityFlow(input);
 }
 
-const evaluatePromptQualityFlow = async ({prompt: promptText, apiKeys, modelName}: EvaluatePromptQualityInput) => {
+const evaluatePromptQualityFlow = async ({prompt: promptText, apiKeys}: EvaluatePromptQualityInput) => {
     const keysToTry = apiKeys?.length ? apiKeys : [process.env.GEMINI_API_KEY];
-    const model = modelName ? googleAI.model(modelName) : googleAI.model('gemini-1.5-flash-latest');
+    const model = googleAI.model('gemini-1.5-flash-latest');
     
     for (const key of keysToTry) {
       if (!key) continue;

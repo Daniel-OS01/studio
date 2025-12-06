@@ -276,9 +276,9 @@ export function RefinementWizard({
     apiKeys: [],
     activeApiKeyIndex: 0,
     models: {
-      analysis: 'gemini-2.5-flash',
-      metrics: 'gemini-2.5-flash',
-      recommendations: 'gemini-2.5-flash',
+      analysis: 'gemini-1.5-flash-latest',
+      metrics: 'gemini-1.5-flash-latest',
+      recommendations: 'gemini-1.5-flash-latest',
     },
   });
 
@@ -321,7 +321,6 @@ export function RefinementWizard({
           topic: WIZARD_FLOW[0].topic,
           history: [],
           apiKeys: getApiKeys(),
-          modelName: settings.models.analysis,
         });
         setStep({ type: 'options', data: result, topic: WIZARD_FLOW[0].topic });
       } catch (e: any) {
@@ -333,7 +332,7 @@ export function RefinementWizard({
         });
       }
     });
-  }, [initialPrompt, getApiKeys, toast, settings.models.analysis]);
+  }, [initialPrompt, getApiKeys, toast]);
 
   const handleOptionSelect = (questionIndex: number, optionTitle: string) => {
     setSelectedOptions((prev) => ({
@@ -399,7 +398,6 @@ export function RefinementWizard({
             topic: WIZARD_FLOW[nextStepIndex].topic,
             history: newHistory,
             apiKeys: getApiKeys(),
-            modelName: settings.models.analysis,
           });
           setStep({
             type: 'options',
@@ -422,7 +420,6 @@ export function RefinementWizard({
             prompt: initialPrompt,
             refinementGoal: newHistory.join(', '),
             apiKeys: getApiKeys(),
-            modelName: settings.models.analysis,
           });
           setStep({ type: 'suggestions', data: result });
         } catch (e: any) {
@@ -438,7 +435,6 @@ export function RefinementWizard({
     goalHistory,
     initialPrompt,
     getApiKeys,
-    settings.models.analysis,
     selectedOptions,
     step,
     toast,
@@ -461,7 +457,6 @@ export function RefinementWizard({
           topic: WIZARD_FLOW[prevStepIndex].topic,
           history: newHistory,
           apiKeys: getApiKeys(),
-          modelName: settings.models.analysis,
         });
         setStep({
           type: 'options',
@@ -486,7 +481,6 @@ export function RefinementWizard({
             topic: WIZARD_FLOW[prevStepIndex].topic,
             history: newHistory,
             apiKeys: getApiKeys(),
-            modelName: settings.models.analysis,
           });
           setStep({
             type: 'options',

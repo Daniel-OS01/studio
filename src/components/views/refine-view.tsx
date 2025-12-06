@@ -77,7 +77,6 @@ export function RefineView({ setView }: RefineViewProps) {
         const { name } = await generatePromptName({
           prompt: promptText,
           apiKeys: getApiKeys(),
-          modelName: settings.models.analysis,
         });
 
         const newPrompt: Prompt = {

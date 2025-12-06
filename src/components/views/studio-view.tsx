@@ -324,7 +324,6 @@ export function StudioView({ setView }: StudioViewProps) {
         const result = await analyzeAndSuggestImprovements({
           prompt: promptText,
           apiKeys: orderedApiKeys.filter(Boolean),
-          modelName: settings.models.analysis,
         });
         setAnalysis(result);
         handleSaveToHistory();
@@ -361,7 +360,6 @@ export function StudioView({ setView }: StudioViewProps) {
         const result = await evaluatePromptQuality({
           prompt: promptText,
           apiKeys: orderedApiKeys.filter(Boolean),
-          modelName: settings.models.metrics,
         });
         setMetrics(result);
         handleSaveToHistory();
@@ -398,7 +396,6 @@ export function StudioView({ setView }: StudioViewProps) {
         const result = await optimizePromptRecommendations({
           promptText: promptText,
           apiKeys: orderedApiKeys.filter(Boolean),
-          modelName: settings.models.recommendations,
         });
         setRecommendations(result);
         handleSaveToHistory();
