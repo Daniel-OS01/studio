@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview A flow to generate high-level refinement goals for a prompt.
@@ -27,6 +28,7 @@ const GenerateRefinementOptionsInputSchema = z.object({
     .array(z.string())
     .optional()
     .describe('An optional list of Google API keys to try.'),
+  modelName: z.string().optional().describe('The model name to use.'),
 });
 export type GenerateRefinementOptionsInput = z.infer<
   typeof GenerateRefinementOptionsInputSchema
@@ -73,6 +75,7 @@ const generateRefinementOptionsFlow = async ({
   topic,
   history,
   apiKeys,
+  modelName,
 }: GenerateRefinementOptionsInput) => {
   const keysToTry = apiKeys?.length ? apiKeys : [process.env.GEMINI_API_KEY];
 
@@ -84,7 +87,7 @@ const generateRefinementOptionsFlow = async ({
       });
 
       const { output } = await localAi.generate({
-        model: ai.model,
+        model: modelName ? googleAI.model(modelName) : ai.model,
         prompt: `You are an expert prompt engineer building an interactive wizard. Your task is to generate a set of questions for a wizard step.
         The user's prompt is: "${prompt}"
         The topic for this step is: "${topic}"

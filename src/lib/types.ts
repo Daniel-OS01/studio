@@ -1,3 +1,4 @@
+
 import type {
   AnalyzeAndSuggestImprovementsOutput,
 } from "@/ai/flows/analyze-and-suggest-improvements"
@@ -47,5 +48,6 @@ export type AppSettings = {
     analysis: string
     metrics: string
     recommendations: string
+    refine: string;
   }
 }

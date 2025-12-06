@@ -37,7 +37,7 @@ const availableModels = [
 
 const customModelValue = "custom"
 
-type ModelConfig = "analysis" | "metrics" | "recommendations"
+type ModelConfig = "analysis" | "metrics" | "recommendations" | "refine";
 
 function SettingsViewContent() {
   const [savedSettings, setSavedSettings] = useLocalStorage<AppSettings>(
@@ -49,6 +49,7 @@ function SettingsViewContent() {
         analysis: 'gemini-1.5-flash-latest',
         metrics: 'gemini-1.5-flash-latest',
         recommendations: 'gemini-1.5-flash-latest',
+        refine: 'gemini-1.5-flash-latest',
       },
     }
   )
@@ -196,7 +197,7 @@ function SettingsViewContent() {
             provide a custom model name.
           </CardDescription>
         </CardHeader>
-        <CardContent className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <CardContent className="grid sm:grid-cols-2 lg:grid-cols-2 gap-6">
           <div className="grid gap-4">
             <div className="grid gap-2">
               <Label htmlFor="model-analysis">Analysis Model</Label>
@@ -299,6 +300,44 @@ function SettingsViewContent() {
                 value={localSettings.models.recommendations}
                 onChange={(e) =>
                   handleCustomModelChange("recommendations", e.target.value)
+                }
+              />
+            )}
+          </div>
+           <div className="grid gap-4">
+            <div className="grid gap-2">
+              <Label htmlFor="model-refine">
+                Refine Model
+              </Label>
+              <Select
+                value={
+                  localSettings.models.refine && !availableModels.includes(localSettings.models.refine)
+                    ? customModelValue
+                    : localSettings.models.refine
+                }
+                onValueChange={(value) =>
+                  handleModelChange("refine", value)
+                }
+              >
+                <SelectTrigger id="model-refine">
+                  <SelectValue placeholder="Select a model" />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableModels.map((model) => (
+                    <SelectItem key={model} value={model}>
+                      {model}
+                    </SelectItem>
+                  ))}
+                  <SelectItem value={customModelValue}>Custom...</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {(localSettings.models.refine === "" || isCustomModel(localSettings.models.refine)) && (
+              <Input
+                placeholder="Enter custom model name"
+                value={localSettings.models.refine}
+                onChange={(e) =>
+                  handleCustomModelChange("refine", e.target.value)
                 }
               />
             )}

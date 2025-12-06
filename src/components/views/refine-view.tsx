@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Button } from '@/components/ui/button';
@@ -37,6 +38,7 @@ export function RefineView({ setView }: RefineViewProps) {
       analysis: 'gemini-1.5-flash-latest',
       metrics: 'gemini-1.5-flash-latest',
       recommendations: 'gemini-1.5-flash-latest',
+      refine: 'gemini-1.5-flash-latest',
     },
   });
 
@@ -77,6 +79,7 @@ export function RefineView({ setView }: RefineViewProps) {
         const { name } = await generatePromptName({
           prompt: promptText,
           apiKeys: getApiKeys(),
+          modelName: settings.models.analysis,
         });
 
         const newPrompt: Prompt = {
