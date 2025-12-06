@@ -165,24 +165,10 @@ export function RefineView({ setView }: RefineViewProps) {
 
 
         {/* Right Panel: Wizard Steps */}
-        <Card className="flex flex-col overflow-y-auto">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle>Refinement Wizard</CardTitle>
-                <CardDescription>
-                  Follow the steps to improve your prompt.
-                </CardDescription>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="flex-1 flex flex-col overflow-y-auto">
-            <RefinementWizard
-              initialPrompt={promptText}
-              onPromptUpdate={setPromptText}
-            />
-          </CardContent>
-        </Card>
+        <RefinementWizard
+            initialPrompt={promptText}
+            onPromptUpdate={setPromptText}
+        />
       </main>
     </div>
   );

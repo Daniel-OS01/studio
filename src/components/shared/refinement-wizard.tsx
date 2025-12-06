@@ -122,8 +122,9 @@ function HistoryDialog({
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button variant="ghost" size="icon" title="View History">
+        <Button variant="ghost" size="sm" className="gap-2">
           <HistoryIcon />
+          History
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-2xl">
@@ -569,23 +570,20 @@ export function RefinementWizard({
 
         return (
           <div className="flex flex-col h-full">
-            <div className="flex items-center mb-4 shrink-0">
-              <Button
+            <div className="flex items-center justify-between mb-4 shrink-0">
+               <Button
                 onClick={handleBack}
                 variant="ghost"
                 size="sm"
+                className="gap-2"
                 disabled={isGenerating}
               >
-                <ArrowLeft className="mr-2 h-4 w-4" /> Back
+                <ArrowLeft /> Back
               </Button>
               <div className="flex-1 text-center font-bold">
                 {WIZARD_FLOW[currentStepIndex].title}
               </div>
-              <HistoryDialog
-                history={promptHistory}
-                onRestore={handleRestoreFromHistory}
-                getApiKeys={getApiKeys}
-              />
+               <div className="w-[88px]" />
             </div>
             <div className="space-y-4 flex-1 overflow-y-auto pr-2">
               {questions.map((question, qIndex) => (
@@ -637,23 +635,20 @@ export function RefinementWizard({
           Object.keys(selectedSuggestions).length === step.data.length;
         return (
           <div className="space-y-4 h-full flex flex-col">
-            <div className="flex items-center mb-2 shrink-0">
+            <div className="flex items-center justify-between mb-2 shrink-0">
               <Button
                 onClick={handleBack}
                 variant="ghost"
                 size="sm"
+                className="gap-2"
                 disabled={isGenerating}
               >
-                <ArrowLeft className="mr-2 h-4 w-4" /> Back
+                <ArrowLeft/> Back
               </Button>
               <div className="flex-1 text-center font-bold">
                 Step 3: Apply Refinements
               </div>
-               <HistoryDialog
-                history={promptHistory}
-                onRestore={handleRestoreFromHistory}
-                getApiKeys={getApiKeys}
-              />
+              <div className="w-[88px]" />
             </div>
             <div className="flex-1 overflow-y-auto pr-2 space-y-4">
               {step.data.map((question, qIndex) => (
@@ -724,5 +719,37 @@ export function RefinementWizard({
     }
   };
 
-  return <>{renderStep()}</>;
+  const renderWizardHeader = () => {
+    const isWizardActive = step.type === 'options' || step.type === 'suggestions';
+    return (
+        <CardHeader className="relative">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>Refinement Wizard</CardTitle>
+                <CardDescription>
+                  Follow the steps to improve your prompt.
+                </CardDescription>
+              </div>
+            </div>
+            {isWizardActive && (
+                 <div className="absolute top-4 right-4">
+                     <HistoryDialog
+                        history={promptHistory}
+                        onRestore={handleRestoreFromHistory}
+                        getApiKeys={getApiKeys}
+                    />
+                 </div>
+            )}
+        </CardHeader>
+    )
+  }
+
+  return (
+      <Card className="flex flex-col overflow-y-auto">
+          {renderWizardHeader()}
+          <CardContent className="flex-1 flex flex-col overflow-y-auto">
+            {renderStep()}
+          </CardContent>
+        </Card>
+  );
 }
