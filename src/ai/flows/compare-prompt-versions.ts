@@ -15,7 +15,7 @@ import {z} from 'genkit';
 const ComparePromptVersionsInputSchema = z.object({
   promptVersion1: z.string().describe('The first version of the prompt.'),
   promptVersion2: z.string().describe('The second version of the prompt.'),
-  apiKey: z.string().optional().describe('An optional Google API key.'),
+  apiKeys: z.array(z.string()).optional().describe('An optional list of Google API keys to try.'),
 });
 
 export type ComparePromptVersionsInput = z.infer<typeof ComparePromptVersionsInputSchema>;
@@ -52,11 +52,22 @@ const comparePromptVersionsFlow = ai.defineFlow(
     inputSchema: ComparePromptVersionsInputSchema,
     outputSchema: ComparePromptVersionsOutputSchema,
   },
-  async ({promptVersion1, promptVersion2, apiKey}) => {
-    const plugins = apiKey ? [googleAI({apiKey})] : [];
-    const {output} = await comparePromptVersionsPrompt({promptVersion1, promptVersion2}, {plugins});
-    return output!;
+  async ({promptVersion1, promptVersion2, apiKeys}) => {
+    const keysToTry = apiKeys?.length ? apiKeys : [undefined];
+    
+    for (const key of keysToTry) {
+      try {
+        const plugins = key ? [googleAI({apiKey: key})] : [];
+        const {output} = await comparePromptVersionsPrompt({promptVersion1, promptVersion2}, {plugins});
+        return output!;
+      } catch (error: any) {
+        if (error.status === 429 && keysToTry.indexOf(key) < keysToTry.length - 1) {
+          console.log(`API key ${key?.slice(0, 8)}... failed. Trying next key.`);
+          continue;
+        }
+        throw error;
+      }
+    }
+    throw new Error("All API keys failed or no keys were provided.");
   }
 );
-
-    

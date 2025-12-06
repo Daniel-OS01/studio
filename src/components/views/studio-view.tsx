@@ -17,6 +17,7 @@ import {
   OptimizePromptRecommendationsInput,
 } from "@/ai/flows/optimize-prompt-recommendations"
 import { ClientOnly } from "@/components/shared/client-only"
+import { ScoreGauge } from "@/components/shared/score-gauge"
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -39,8 +40,8 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from "@/components/ui/textarea"
-import { useToast } from "@/hooks/use-toast"
 import { useLocalStorage } from "@/hooks/use-local-storage"
+import { useToast } from "@/hooks/use-toast"
 import type {
   AppSettings,
   Prompt,
@@ -50,7 +51,6 @@ import type {
   PromptVersion,
   QualityMetrics,
 } from "@/lib/types"
-import { cn } from "@/lib/utils"
 import { formatDistanceToNow } from "date-fns"
 import {
   AlertTriangle,
@@ -64,7 +64,6 @@ import {
   ThumbsUp,
 } from "lucide-react"
 import React, { useState, useTransition } from "react"
-import { ScoreGauge } from "../shared/score-gauge"
 
 function HistoryTabContent() {
   const [history, setHistory] = useLocalStorage<PromptVersion[]>(
@@ -114,7 +113,7 @@ function HistoryTabContent() {
         const result = await comparePromptVersions({
           promptVersion1: history[selectedHistory[1]].text,
           promptVersion2: history[selectedHistory[0]].text,
-          apiKeys: orderedApiKeys,
+          apiKeys: orderedApiKeys.filter(Boolean),
         })
         setComparison(result)
       } catch (error) {
@@ -259,7 +258,6 @@ function HistoryTabContent() {
 export function StudioView() {
   const [promptName, setPromptName] = useState("")
   const [promptText, setPromptText] = useState("")
-  const [apiKey, setApiKey] = useState("")
 
   const [analysis, setAnalysis] = useState<PromptAnalysis | null>(null)
   const [metrics, setMetrics] = useState<QualityMetrics | null>(null)
@@ -324,7 +322,7 @@ export function StudioView() {
 
         const result = await analyzeAndSuggestImprovements({
           prompt: promptText,
-          apiKeys: orderedApiKeys,
+          apiKeys: orderedApiKeys.filter(Boolean),
           modelName: settings.models.analysis,
         })
         setAnalysis(result)
@@ -361,7 +359,7 @@ export function StudioView() {
 
         const result = await evaluatePromptQuality({
           prompt: promptText,
-          apiKeys: orderedApiKeys,
+          apiKeys: orderedApiKeys.filter(Boolean),
           modelName: settings.models.metrics,
         })
         setMetrics(result)
@@ -398,7 +396,7 @@ export function StudioView() {
 
         const result = await optimizePromptRecommendations({
           promptText: promptText,
-          apiKeys: orderedApiKeys,
+          apiKeys: orderedApiKeys.filter(Boolean),
           modelName: settings.models.recommendations,
         })
         setRecommendations(result)
@@ -463,18 +461,6 @@ export function StudioView() {
                 placeholder="e.g., Creative Story Starter"
                 value={promptName}
                 onChange={(e) => setPromptName(e.target.value)}
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="api-key">
-                Google API Key (Overrides Default)
-              </Label>
-              <Input
-                id="api-key"
-                placeholder="Enter your Google API key"
-                value={apiKey}
-                onChange={(e) => setApiKey(e.target.value)}
-                type="password"
               />
             </div>
             <div className="grid gap-2 flex-1">

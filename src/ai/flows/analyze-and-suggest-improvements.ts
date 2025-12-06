@@ -14,7 +14,7 @@ import {z} from 'genkit';
 
 const AnalyzeAndSuggestImprovementsInputSchema = z.object({
   prompt: z.string().describe('The prompt to analyze and improve.'),
-  apiKey: z.string().optional().describe('An optional Google API key.'),
+  apiKeys: z.array(z.string()).optional().describe('An optional list of Google API keys to try.'),
   modelName: z.string().optional().describe('An optional Gemini model name.'),
 });
 export type AnalyzeAndSuggestImprovementsInput = z.infer<
@@ -54,10 +54,23 @@ const analyzeAndSuggestImprovementsFlow = ai.defineFlow(
     inputSchema: AnalyzeAndSuggestImprovementsInputSchema,
     outputSchema: AnalyzeAndSuggestImprovementsOutputSchema,
   },
-  async ({prompt: promptText, apiKey, modelName}) => {
-    const plugins = apiKey ? [googleAI({apiKey})] : [];
+  async ({prompt: promptText, apiKeys, modelName}) => {
+    const keysToTry = apiKeys?.length ? apiKeys : [undefined];
     const model = modelName ? googleAI.model(modelName) : undefined;
-    const {output} = await prompt({prompt: promptText}, {plugins, model});
-    return output!;
+    
+    for (const key of keysToTry) {
+      try {
+        const plugins = key ? [googleAI({apiKey: key})] : [];
+        const {output} = await prompt({prompt: promptText}, {plugins, model});
+        return output!;
+      } catch (error: any) {
+        if (error.status === 429 && keysToTry.indexOf(key) < keysToTry.length - 1) {
+          console.log(`API key ${key?.slice(0, 8)}... failed. Trying next key.`);
+          continue;
+        }
+        throw error;
+      }
+    }
+    throw new Error("All API keys failed or no keys were provided.");
   }
 );
