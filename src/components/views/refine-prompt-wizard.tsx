@@ -2,11 +2,12 @@
 
 import React, { useState, useTransition } from 'react';
 import { Button } from '@/components/ui/button';
-import { Loader2, Wand, AlertTriangle, RefreshCw } from 'lucide-react';
+import { Loader2, Wand, AlertTriangle, RefreshCw, Lightbulb } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { refinePrompt } from '@/ai/flows/refine-prompt';
 import type { AppSettings, RefinementStep } from '@/lib/types';
 import { useLocalStorage } from '@/hooks/use-local-storage';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 
 interface RefinePromptWizardProps {
   promptText: string;
@@ -110,7 +111,7 @@ export function RefinePromptWizard({ promptText, onApplySuggestion }: RefineProm
         <p className="text-muted-foreground max-w-sm mb-6">
           Start an interactive wizard that will ask you questions to help improve and add detail to your prompt.
         </p>
-        <Button onClick={handleGetRefinement} disabled={isRefining}>
+        <Button onClick={handleGetRefinement} disabled={isRefining || !promptText.trim()}>
           {isRefining ? <Loader2 className="animate-spin" /> : <Wand />}
           Start Refining
         </Button>
@@ -125,16 +126,26 @@ export function RefinePromptWizard({ promptText, onApplySuggestion }: RefineProm
             <p className="text-muted-foreground text-sm">{stepData.explanation}</p>
         </div>
 
-        <div className="flex-1 space-y-2">
+        <div className="flex-1 space-y-2 overflow-y-auto pr-2">
             {stepData.options.map((option, index) => (
-            <Button
+            <Card 
                 key={index}
-                variant="outline"
-                className="w-full justify-start text-left h-auto py-2"
                 onClick={() => handleOptionClick(option.text)}
+                className="cursor-pointer hover:bg-accent hover:text-accent-foreground transition-colors"
             >
-                {option.title}
-            </Button>
+                <CardHeader className="p-3">
+                    <CardTitle className="text-base font-semibold">{option.title}</CardTitle>
+                </CardHeader>
+                <CardContent className="p-3 pt-0 text-sm">
+                    <p className="font-mono text-xs bg-muted/50 p-2 rounded-md mb-2">
+                       + "{option.text.trim()}"
+                    </p>
+                    <div className='flex items-start gap-2 text-muted-foreground'>
+                        <Lightbulb className="flex-shrink-0 mt-1"/>
+                        <p className="text-xs">{option.example}</p>
+                    </div>
+                </CardContent>
+            </Card>
             ))}
         </div>
         
