@@ -11,7 +11,7 @@ import { useToast } from "@/hooks/use-toast"
 import type { AppSettings, Prompt, View } from "@/lib/types"
 import { cn } from "@/lib/utils"
 import { formatDistanceToNow } from "date-fns"
-import { Plus, Trash2, Sparkles, Loader2 } from "lucide-react"
+import { Plus, Trash2, Sparkles, Loader2, Copy, Edit } from "lucide-react"
 import React, { useEffect, useState, useTransition, useCallback } from "react"
 import { generatePromptName } from "@/ai/flows/generate-prompt-name"
 
@@ -19,19 +19,20 @@ interface CompactPromptCardProps {
   prompt: Prompt
   isSelected: boolean
   onClick: () => void
+  onCopy: () => void
 }
 
-function CompactPromptCard({ prompt, isSelected, onClick }: CompactPromptCardProps) {
+function CompactPromptCard({ prompt, isSelected, onClick, onCopy }: CompactPromptCardProps) {
   return (
     <div
-      onClick={onClick}
       className={cn(
-        "p-3 rounded-lg border cursor-pointer hover:bg-muted/50",
+        "p-3 rounded-lg border cursor-pointer hover:bg-muted/50 relative group",
         isSelected && "bg-muted border-primary"
       )}
+      onClick={onClick}
     >
-      <div className="flex justify-between items-center mb-1">
-        <h3 className="font-semibold text-sm truncate pr-2">{prompt.name}</h3>
+      <div className="flex justify-between items-start mb-1">
+        <h3 className="font-semibold text-sm truncate pr-16">{prompt.name}</h3>
         <p className="text-xs text-muted-foreground shrink-0">
           {formatDistanceToNow(new Date(prompt.createdAt), {
             addSuffix: true,
@@ -41,6 +42,14 @@ function CompactPromptCard({ prompt, isSelected, onClick }: CompactPromptCardPro
       <p className="text-xs text-muted-foreground line-clamp-2">
         {prompt.text}
       </p>
+      <div className="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); onCopy()}}>
+          <Copy className="h-4 w-4" />
+        </Button>
+        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); onClick()}}>
+          <Edit className="h-4 w-4" />
+        </Button>
+      </div>
     </div>
   )
 }
@@ -148,6 +157,14 @@ function LocalLibraryViewContent({ setView }: { setView: (view: View) => void })
     });
   };
 
+  const handleCopyPrompt = (prompt: Prompt) => {
+    navigator.clipboard.writeText(prompt.text);
+    toast({
+      title: "Prompt Copied",
+      description: `"${prompt.name}" has been copied to your clipboard.`,
+    });
+  };
+
   const filteredPrompts = prompts.filter(
     (p) =>
       p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -157,7 +174,7 @@ function LocalLibraryViewContent({ setView }: { setView: (view: View) => void })
   const selectedPrompt = prompts.find((p) => p.id === selectedPromptId)
 
   return (
-    <main className="grid md:grid-cols-[340px_1fr] flex-1 overflow-hidden">
+    <main className="grid md:grid-cols-[340px_1fr] flex-1 overflow-y-auto">
       {/* Left Column: Prompt List */}
       <div className="flex flex-col gap-4 p-4 border-r bg-muted/20">
         <div className="flex items-center gap-2">
@@ -179,6 +196,7 @@ function LocalLibraryViewContent({ setView }: { setView: (view: View) => void })
                     prompt={prompt}
                     isSelected={prompt.id === selectedPromptId}
                     onClick={() => setSelectedPromptId(prompt.id)}
+                    onCopy={() => handleCopyPrompt(prompt)}
                 />
                 ))
             ) : (
@@ -222,7 +240,7 @@ function LocalLibraryViewContent({ setView }: { setView: (view: View) => void })
               />
             </div>
              <div className="p-4 border-t mt-auto flex justify-end">
-                <Button variant="destructive-outline" size="sm" onClick={() => handleDeletePrompt(selectedPrompt.id)}>
+                <Button variant="destructive" size="sm" onClick={() => handleDeletePrompt(selectedPrompt.id)}>
                     <Trash2 className="mr-2 h-4 w-4" /> Delete Prompt
                 </Button>
              </div>
