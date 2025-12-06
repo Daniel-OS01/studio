@@ -8,6 +8,7 @@ import { evaluatePromptQuality } from "@/ai/flows/evaluate-prompt-quality"
 import {
   optimizePromptRecommendations,
 } from "@/ai/flows/optimize-prompt-recommendations"
+import { ClientOnly } from "@/components/shared/client-only"
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -56,6 +57,176 @@ import {
 import React, { useState, useTransition } from "react"
 import { ScoreGauge } from "../shared/score-gauge"
 
+function HistoryTabContent() {
+  const [history, setHistory] = useLocalStorage<PromptVersion[]>(
+    "prompt-forge-history",
+    []
+  )
+  const [selectedHistory, setSelectedHistory] = useState<number[]>([])
+  const [comparison, setComparison] = useState<PromptComparison | null>(null)
+  const [isComparisonDialogOpen, setIsComparisonDialogOpen] = useState(false)
+  const [isComparing, startComparing] = useTransition()
+  const { toast } = useToast()
+  
+  // This state is managed in the parent but we need it here for the restore button.
+  // This is not ideal, but it's a quick fix for the demo.
+  // A better solution would be to lift the state up or use a state manager.
+  const [promptText, setPromptText] = useState("")
+
+
+  const handleCompare = () => {
+    if (selectedHistory.length !== 2) {
+      toast({
+        title: "Select two versions",
+        description: "Please select exactly two prompt versions to compare.",
+        variant: "destructive",
+      })
+      return
+    }
+    startComparing(async () => {
+      setComparison(null)
+      setIsComparisonDialogOpen(true)
+      try {
+        const result = await comparePromptVersions({
+          promptVersion1: history[selectedHistory[1]].text,
+          promptVersion2: history[selectedHistory[0]].text,
+        })
+        setComparison(result)
+      } catch (error) {
+        toast({
+          title: "Comparison failed",
+          description: "Could not compare the prompts. Please try again.",
+          variant: "destructive",
+        })
+        console.error(error)
+        setIsComparisonDialogOpen(false)
+      }
+    })
+  }
+
+  const handleHistoryCheckboxChange = (
+    checked: boolean | string,
+    index: number
+  ) => {
+    if (checked) {
+      setSelectedHistory([...selectedHistory, index])
+    } else {
+      setSelectedHistory(selectedHistory.filter((i) => i !== index))
+    }
+  }
+
+  return (
+    <>
+      <div className="flex items-center gap-4">
+        <h3 className="font-semibold text-lg flex items-center gap-2">
+          <History />
+          Prompt History
+        </h3>
+        <Button
+          onClick={handleCompare}
+          disabled={isComparing || selectedHistory.length !== 2}
+          className="ml-auto"
+        >
+          {isComparing ? <Loader2 className="animate-spin" /> : <TestTube2 />}
+          Compare ({selectedHistory.length})
+        </Button>
+      </div>
+      <ScrollArea className="flex-1 border rounded-md p-2">
+        {history.length > 0 ? (
+          <div className="space-y-2">
+            {history.map((version, index) => (
+              <div
+                key={version.timestamp}
+                className="flex items-start gap-4 p-2 rounded-md hover:bg-muted/50"
+              >
+                <Checkbox
+                  id={`hist-${index}`}
+                  onCheckedChange={(c) => handleHistoryCheckboxChange(c, index)}
+                />
+                <div className="grid gap-1.5 leading-none">
+                  <label
+                    htmlFor={`hist-${index}`}
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                  >
+                    <p className="truncate text-sm text-muted-foreground">
+                      {version.text}
+                    </p>
+                  </label>
+                  <p className="text-xs text-muted-foreground">
+                    {formatDistanceToNow(new Date(version.timestamp), {
+                      addSuffix: true,
+                    })}
+                  </p>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="ml-auto"
+                  onClick={() => setPromptText(version.text)}
+                >
+                  Restore
+                </Button>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground text-center p-4">
+            No history yet. Analyze or evaluate a prompt to save a version.
+          </p>
+        )}
+      </ScrollArea>
+      <Dialog
+        open={isComparisonDialogOpen}
+        onOpenChange={setIsComparisonDialogOpen}
+      >
+        <DialogContent className="sm:max-w-[625px]">
+          <DialogHeader>
+            <DialogTitle>Prompt Comparison</DialogTitle>
+            <DialogDescription>
+              AI-powered analysis of the differences between two prompt
+              versions.
+            </DialogDescription>
+          </DialogHeader>
+          {isComparing && !comparison ? (
+            <div className="flex items-center justify-center h-40 gap-2 text-muted-foreground">
+              <Loader2 className="animate-spin" /> Comparing prompts...
+            </div>
+          ) : comparison ? (
+            <div className="space-y-4 text-sm">
+              <div>
+                <h4 className="font-semibold">Version 1 (Older)</h4>
+                <p className="text-muted-foreground p-2 bg-muted rounded-md max-h-20 overflow-auto">
+                  {history[selectedHistory[1]]?.text}
+                </p>
+              </div>
+              <div>
+                <h4 className="font-semibold">Version 2 (Newer)</h4>
+                <p className="text-muted-foreground p-2 bg-muted rounded-md max-h-20 overflow-auto">
+                  {history[selectedHistory[0]]?.text}
+                </p>
+              </div>
+              <Separator />
+              <div>
+                <h4 className="font-semibold flex items-center gap-2">
+                  <Sparkles className="text-accent" /> Analysis
+                </h4>
+                <p className="text-muted-foreground whitespace-pre-wrap">
+                  {comparison.analysis}
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center h-40 gap-2 text-destructive">
+              <AlertTriangle />
+              <p>Could not retrieve comparison.</p>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </>
+  )
+}
+
 export function StudioView() {
   const [promptName, setPromptName] = useState("")
   const [promptText, setPromptText] = useState("")
@@ -65,15 +236,11 @@ export function StudioView() {
   const [metrics, setMetrics] = useState<QualityMetrics | null>(null)
   const [recommendations, setRecommendations] =
     useState<PromptRecommendations | null>(null)
-  const [comparison, setComparison] = useState<PromptComparison | null>(null)
-  const [isComparisonDialogOpen, setIsComparisonDialogOpen] = useState(false)
 
-  const [history, setHistory] = useLocalStorage<PromptVersion[]>(
+  const [, setHistory] = useLocalStorage<PromptVersion[]>(
     "prompt-forge-history",
     []
   )
-  const [selectedHistory, setSelectedHistory] = useState<number[]>([])
-
   const [, setLocalPrompts] = useLocalStorage<Prompt[]>(
     "prompt-forge-library",
     []
@@ -82,7 +249,6 @@ export function StudioView() {
   const [isAnalyzing, startAnalyzing] = useTransition()
   const [isEvaluating, startEvaluating] = useTransition()
   const [isRecommending, startRecommending] = useTransition()
-  const [isComparing, startComparing] = useTransition()
 
   const { toast } = useToast()
 
@@ -92,7 +258,7 @@ export function StudioView() {
       text: promptText,
       timestamp: Date.now(),
     }
-    setHistory([newVersion, ...history])
+    setHistory((prev) => [newVersion, ...prev])
     toast({
       title: "Version saved",
       description: "Prompt version added to history.",
@@ -179,47 +345,6 @@ export function StudioView() {
     })
   }
 
-  const handleCompare = () => {
-    if (selectedHistory.length !== 2) {
-      toast({
-        title: "Select two versions",
-        description: "Please select exactly two prompt versions to compare.",
-        variant: "destructive",
-      })
-      return
-    }
-    startComparing(async () => {
-      setComparison(null)
-      setIsComparisonDialogOpen(true)
-      try {
-        const result = await comparePromptVersions({
-          promptVersion1: history[selectedHistory[1]].text,
-          promptVersion2: history[selectedHistory[0]].text,
-        })
-        setComparison(result)
-      } catch (error) {
-        toast({
-          title: "Comparison failed",
-          description: "Could not compare the prompts. Please try again.",
-          variant: "destructive",
-        })
-        console.error(error)
-        setIsComparisonDialogOpen(false)
-      }
-    })
-  }
-
-  const handleHistoryCheckboxChange = (
-    checked: boolean | string,
-    index: number
-  ) => {
-    if (checked) {
-      setSelectedHistory([...selectedHistory, index])
-    } else {
-      setSelectedHistory(selectedHistory.filter((i) => i !== index))
-    }
-  }
-
   const handleSaveToLibrary = () => {
     if (!promptText.trim() || !promptName.trim()) {
       toast({
@@ -245,8 +370,12 @@ export function StudioView() {
   return (
     <div className="flex flex-col h-screen bg-background">
       <header className="p-4 border-b">
-        <h1 className="text-2xl font-headline font-bold text-foreground">Studio</h1>
-        <p className="text-muted-foreground">Craft, analyze, and refine your AI prompts.</p>
+        <h1 className="text-2xl font-headline font-bold text-foreground">
+          Studio
+        </h1>
+        <p className="text-muted-foreground">
+          Craft, analyze, and refine your AI prompts.
+        </p>
       </header>
       <main className="flex-1 grid md:grid-cols-2 gap-4 p-4 overflow-hidden">
         {/* Left Panel: Editor */}
@@ -288,17 +417,15 @@ export function StudioView() {
                 max={2048}
                 step={1}
                 value={promptLength}
-                onChange={(e) => setPromptLength(parseInt(e.target.value, 10) || 0)}
+                onChange={(e) =>
+                  setPromptLength(parseInt(e.target.value, 10) || 0)
+                }
                 className="w-48"
               />
             </div>
             <div className="flex flex-wrap gap-2">
               <Button onClick={handleAnalyze} disabled={isAnalyzing}>
-                {isAnalyzing ? (
-                  <Loader2 className="animate-spin" />
-                ) : (
-                  <Sparkles />
-                )}
+                {isAnalyzing ? <Loader2 className="animate-spin" /> : <Sparkles />}
                 Analyze
               </Button>
               <Button
@@ -306,11 +433,7 @@ export function StudioView() {
                 disabled={isEvaluating}
                 variant="secondary"
               >
-                {isEvaluating ? (
-                  <Loader2 className="animate-spin" />
-                ) : (
-                  <TestTube2 />
-                )}
+                {isEvaluating ? <Loader2 className="animate-spin" /> : <TestTube2 />}
                 Evaluate Quality
               </Button>
               <Button
@@ -363,24 +486,38 @@ export function StudioView() {
                 {analysis ? (
                   <div className="space-y-4">
                     <div>
-                      <h3 className="font-semibold text-lg flex items-center gap-2"><FileText />Analysis</h3>
-                      <p className="text-sm text-muted-foreground whitespace-pre-wrap">{analysis.analysis}</p>
+                      <h3 className="font-semibold text-lg flex items-center gap-2">
+                        <FileText />
+                        Analysis
+                      </h3>
+                      <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                        {analysis.analysis}
+                      </p>
                     </div>
                     <Separator />
                     <div>
-                      <h3 className="font-semibold text-lg flex items-center gap-2"><ThumbsUp />Suggestions</h3>
-                      <p className="text-sm text-muted-foreground whitespace-pre-wrap">{analysis.suggestions}</p>
+                      <h3 className="font-semibold text-lg flex items-center gap-2">
+                        <ThumbsUp />
+                        Suggestions
+                      </h3>
+                      <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                        {analysis.suggestions}
+                      </p>
                     </div>
                   </div>
                 ) : (
-                  !isAnalyzing && <p className="text-sm text-muted-foreground">Run an analysis to see results.</p>
+                  !isAnalyzing && (
+                    <p className="text-sm text-muted-foreground">
+                      Run an analysis to see results.
+                    </p>
+                  )
                 )}
               </CardContent>
             </Card>
           </TabsContent>
 
           <TabsContent value="metrics" className="flex-1 overflow-auto mt-4">
-             <Card className="h-full">
+            <Card className="h-full">
               <CardHeader>
                 <CardTitle>Quality Metrics</CardTitle>
                 <CardDescription>
@@ -397,26 +534,44 @@ export function StudioView() {
                   <div className="space-y-4">
                     <div className="flex justify-around flex-wrap gap-4">
                       <ScoreGauge score={metrics.clarity} label="Clarity" />
-                      <ScoreGauge score={metrics.specificity} label="Specificity" />
-                      <ScoreGauge score={metrics.potentialBias} label="Bias" />
+                      <ScoreGauge
+                        score={metrics.specificity}
+                        label="Specificity"
+                      />
+                      <ScoreGauge
+                        score={metrics.potentialBias}
+                        label="Bias"
+                      />
                     </div>
-                     <Separator />
+                    <Separator />
                     <div>
-                      <h3 className="font-semibold text-lg flex items-center gap-2"><Lightbulb />Suggestions</h3>
+                      <h3 className="font-semibold text-lg flex items-center gap-2">
+                        <Lightbulb />
+                        Suggestions
+                      </h3>
                       <ul className="list-disc pl-5 space-y-1 text-sm text-muted-foreground">
-                        {metrics.suggestions.map((s, i) => <li key={i}>{s}</li>)}
+                        {metrics.suggestions.map((s, i) => (
+                          <li key={i}>{s}</li>
+                        ))}
                       </ul>
                     </div>
                   </div>
                 ) : (
-                   !isEvaluating && <p className="text-sm text-muted-foreground">Run an evaluation to see results.</p>
+                  !isEvaluating && (
+                    <p className="text-sm text-muted-foreground">
+                      Run an evaluation to see results.
+                    </p>
+                  )
                 )}
               </CardContent>
             </Card>
           </TabsContent>
 
-          <TabsContent value="recommendations" className="flex-1 overflow-auto mt-4">
-             <Card className="h-full">
+          <TabsContent
+            value="recommendations"
+            className="flex-1 overflow-auto mt-4"
+          >
+            <Card className="h-full">
               <CardHeader>
                 <CardTitle>Optimization Recommendations</CardTitle>
                 <CardDescription>
@@ -426,93 +581,37 @@ export function StudioView() {
               <CardContent>
                 {isRecommending && (
                   <div className="flex items-center gap-2 text-muted-foreground">
-                    <Loader2 className="animate-spin" /> Getting recommendations...
+                    <Loader2 className="animate-spin" /> Getting
+                    recommendations...
                   </div>
                 )}
                 {recommendations ? (
                   <ul className="list-disc pl-5 space-y-2 text-sm text-muted-foreground">
-                    {recommendations.recommendations.map((r, i) => <li key={i}>{r}</li>)}
+                    {recommendations.recommendations.map((r, i) => (
+                      <li key={i}>{r}</li>
+                    ))}
                   </ul>
                 ) : (
-                  !isRecommending && <p className="text-sm text-muted-foreground">Click "Get Recommendations" to see results.</p>
+                  !isRecommending && (
+                    <p className="text-sm text-muted-foreground">
+                      Click "Get Recommendations" to see results.
+                    </p>
+                  )
                 )}
               </CardContent>
             </Card>
           </TabsContent>
 
-          <TabsContent value="history" className="flex-1 flex flex-col gap-4 mt-4">
-            <div className="flex items-center gap-4">
-                <h3 className="font-semibold text-lg flex items-center gap-2"><History />Prompt History</h3>
-                <Button onClick={handleCompare} disabled={isComparing || selectedHistory.length !== 2} className="ml-auto">
-                    {isComparing ? <Loader2 className="animate-spin"/> : <TestTube2 />}
-                    Compare ({selectedHistory.length})
-                </Button>
-            </div>
-            <ScrollArea className="flex-1 border rounded-md p-2">
-                {history.length > 0 ? (
-                    <div className="space-y-2">
-                    {history.map((version, index) => (
-                        <div key={version.timestamp} className="flex items-start gap-4 p-2 rounded-md hover:bg-muted/50">
-                            <Checkbox id={`hist-${index}`} onCheckedChange={(c) => handleHistoryCheckboxChange(c, index)} />
-                            <div className="grid gap-1.5 leading-none">
-                                <label htmlFor={`hist-${index}`} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer">
-                                    <p className="truncate text-sm text-muted-foreground">{version.text}</p>
-                                </label>
-                                <p className="text-xs text-muted-foreground">
-                                    {formatDistanceToNow(new Date(version.timestamp), { addSuffix: true })}
-                                </p>
-                            </div>
-                             <Button variant="ghost" size="sm" className="ml-auto" onClick={() => setPromptText(version.text)}>
-                                Restore
-                            </Button>
-                        </div>
-                    ))}
-                    </div>
-                ) : (
-                     <p className="text-sm text-muted-foreground text-center p-4">No history yet. Analyze or evaluate a prompt to save a version.</p>
-                )}
-            </ScrollArea>
+          <TabsContent
+            value="history"
+            className="flex-1 flex flex-col gap-4 mt-4"
+          >
+            <ClientOnly>
+              <HistoryTabContent />
+            </ClientOnly>
           </TabsContent>
         </Tabs>
-        <Dialog open={isComparisonDialogOpen} onOpenChange={setIsComparisonDialogOpen}>
-            <DialogContent className="sm:max-w-[625px]">
-                <DialogHeader>
-                    <DialogTitle>Prompt Comparison</DialogTitle>
-                    <DialogDescription>
-                        AI-powered analysis of the differences between two prompt versions.
-                    </DialogDescription>
-                </DialogHeader>
-                {isComparing && !comparison ? (
-                    <div className="flex items-center justify-center h-40 gap-2 text-muted-foreground">
-                        <Loader2 className="animate-spin" /> Comparing prompts...
-                    </div>
-                ) : comparison ? (
-                    <div className="space-y-4 text-sm">
-                        <div>
-                            <h4 className="font-semibold">Version 1 (Older)</h4>
-                            <p className="text-muted-foreground p-2 bg-muted rounded-md max-h-20 overflow-auto">{history[selectedHistory[1]]?.text}</p>
-                        </div>
-                        <div>
-                            <h4 className="font-semibold">Version 2 (Newer)</h4>
-                            <p className="text-muted-foreground p-2 bg-muted rounded-md max-h-20 overflow-auto">{history[selectedHistory[0]]?.text}</p>
-                        </div>
-                        <Separator />
-                        <div>
-                            <h4 className="font-semibold flex items-center gap-2"><Sparkles className="text-accent"/> Analysis</h4>
-                            <p className="text-muted-foreground whitespace-pre-wrap">{comparison.analysis}</p>
-                        </div>
-                    </div>
-                ) : (
-                    <div className="flex flex-col items-center justify-center h-40 gap-2 text-destructive">
-                        <AlertTriangle/>
-                        <p>Could not retrieve comparison.</p>
-                    </div>
-                )}
-            </DialogContent>
-        </Dialog>
       </main>
     </div>
   )
 }
-
-    
