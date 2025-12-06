@@ -9,10 +9,12 @@
  */
 
 import {ai} from '@/ai/genkit';
+import {googleAI} from '@genkit-ai/google-genai';
 import {z} from 'genkit';
 
 const AnalyzeAndSuggestImprovementsInputSchema = z.object({
   prompt: z.string().describe('The prompt to analyze and improve.'),
+  apiKey: z.string().optional().describe('An optional Google API key.'),
 });
 export type AnalyzeAndSuggestImprovementsInput = z.infer<
   typeof AnalyzeAndSuggestImprovementsInputSchema
@@ -34,7 +36,7 @@ export async function analyzeAndSuggestImprovements(
 
 const prompt = ai.definePrompt({
   name: 'analyzeAndSuggestImprovementsPrompt',
-  input: {schema: AnalyzeAndSuggestImprovementsInputSchema},
+  input: {schema: z.object({prompt: z.string()})},
   output: {schema: AnalyzeAndSuggestImprovementsOutputSchema},
   prompt: `You are an AI prompt expert. Your job is to analyze the prompt provided and suggest improvements.
 
@@ -51,8 +53,14 @@ const analyzeAndSuggestImprovementsFlow = ai.defineFlow(
     inputSchema: AnalyzeAndSuggestImprovementsInputSchema,
     outputSchema: AnalyzeAndSuggestImprovementsOutputSchema,
   },
-  async input => {
-    const {output} = await prompt(input);
+  async ({prompt: promptText, apiKey}) => {
+    let plugins = [];
+    if (apiKey) {
+      plugins.push(googleAI({apiKey}));
+    }
+    const {output} = await prompt({prompt: promptText}, {plugins});
     return output!;
   }
 );
+
+    

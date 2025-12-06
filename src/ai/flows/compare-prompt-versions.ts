@@ -9,11 +9,13 @@
  */
 
 import {ai} from '@/ai/genkit';
+import {googleAI} from '@genkit-ai/google-genai';
 import {z} from 'genkit';
 
 const ComparePromptVersionsInputSchema = z.object({
   promptVersion1: z.string().describe('The first version of the prompt.'),
   promptVersion2: z.string().describe('The second version of the prompt.'),
+  apiKey: z.string().optional().describe('An optional Google API key.'),
 });
 
 export type ComparePromptVersionsInput = z.infer<typeof ComparePromptVersionsInputSchema>;
@@ -30,7 +32,7 @@ export async function comparePromptVersions(input: ComparePromptVersionsInput): 
 
 const comparePromptVersionsPrompt = ai.definePrompt({
   name: 'comparePromptVersionsPrompt',
-  input: {schema: ComparePromptVersionsInputSchema},
+  input: {schema: z.object({promptVersion1: z.string(), promptVersion2: z.string()})},
   output: {schema: ComparePromptVersionsOutputSchema},
   prompt: `You are an AI prompt expert. Compare the two prompt versions provided below and highlight the key differences and their potential impact on the AI's response.
 
@@ -50,8 +52,14 @@ const comparePromptVersionsFlow = ai.defineFlow(
     inputSchema: ComparePromptVersionsInputSchema,
     outputSchema: ComparePromptVersionsOutputSchema,
   },
-  async input => {
-    const {output} = await comparePromptVersionsPrompt(input);
+  async ({promptVersion1, promptVersion2, apiKey}) => {
+    let plugins = [];
+    if (apiKey) {
+      plugins.push(googleAI({apiKey}));
+    }
+    const {output} = await comparePromptVersionsPrompt({promptVersion1, promptVersion2}, {plugins});
     return output!;
   }
 );
+
+    

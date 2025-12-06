@@ -9,6 +9,7 @@
  */
 
 import {ai} from '@/ai/genkit';
+import {googleAI} from '@genkit-ai/google-genai';
 import {z} from 'genkit';
 
 const EvaluatePromptQualityInputSchema = z.string().describe('The prompt to evaluate.');
@@ -22,8 +23,11 @@ const EvaluatePromptQualityOutputSchema = z.object({
 });
 export type EvaluatePromptQualityOutput = z.infer<typeof EvaluatePromptQualityOutputSchema>;
 
-export async function evaluatePromptQuality(input: EvaluatePromptQualityInput): Promise<EvaluatePromptQualityOutput> {
-  return evaluatePromptQualityFlow(input);
+export async function evaluatePromptQuality(
+  prompt: EvaluatePromptQualityInput,
+  apiKey?: string
+): Promise<EvaluatePromptQualityOutput> {
+  return evaluatePromptQualityFlow(prompt, {apiKey});
 }
 
 const prompt = ai.definePrompt({
@@ -36,11 +40,17 @@ const prompt = ai.definePrompt({
 const evaluatePromptQualityFlow = ai.defineFlow(
   {
     name: 'evaluatePromptQualityFlow',
-    inputSchema: EvaluatePromptQualityInputSchema,
+    inputSchema: z.string(),
     outputSchema: EvaluatePromptQualityOutputSchema,
   },
-  async input => {
-    const {output} = await prompt(input);
+  async (input, {apiKey}) => {
+    let plugins = [];
+    if (apiKey) {
+      plugins.push(googleAI({apiKey}));
+    }
+    const {output} = await prompt(input, {plugins});
     return output!;
   }
 );
+
+    

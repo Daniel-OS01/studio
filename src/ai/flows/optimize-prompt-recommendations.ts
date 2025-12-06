@@ -9,10 +9,12 @@
  */
 
 import {ai} from '@/ai/genkit';
+import {googleAI} from '@genkit-ai/google-genai';
 import {z} from 'genkit';
 
 const OptimizePromptRecommendationsInputSchema = z.object({
   promptText: z.string().describe('The prompt text to be optimized.'),
+  apiKey: z.string().optional().describe('An optional Google API key.'),
 });
 
 export type OptimizePromptRecommendationsInput = z.infer<typeof OptimizePromptRecommendationsInputSchema>;
@@ -49,7 +51,7 @@ async (input) => {
 
 const prompt = ai.definePrompt({
   name: 'optimizePromptRecommendationsPrompt',
-  input: {schema: OptimizePromptRecommendationsInputSchema},
+  input: {schema: z.object({promptText: z.string()})},
   output: {schema: OptimizePromptRecommendationsOutputSchema},
   tools: [evaluateBestPracticeTool],
   prompt: `You are an AI prompt optimizer.  Your job is to take a prompt and provide a list of recommendations on how to improve it. Use the evaluateBestPractice tool to evaluate the best practice.
@@ -82,8 +84,14 @@ const optimizePromptRecommendationsFlow = ai.defineFlow(
     inputSchema: OptimizePromptRecommendationsInputSchema,
     outputSchema: OptimizePromptRecommendationsOutputSchema,
   },
-  async input => {
-    const {output} = await prompt(input);
+  async ({promptText, apiKey}) => {
+    let plugins = [];
+    if (apiKey) {
+      plugins.push(googleAI({apiKey}));
+    }
+    const {output} = await prompt({promptText}, {plugins});
     return output!;
   }
 );
+
+    

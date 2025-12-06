@@ -53,6 +53,7 @@ import {
   Sparkles,
   TestTube2,
   ThumbsUp,
+  Key,
 } from "lucide-react"
 import React, { useState, useTransition } from "react"
 import { ScoreGauge } from "../shared/score-gauge"
@@ -230,6 +231,7 @@ function HistoryTabContent() {
 export function StudioView() {
   const [promptName, setPromptName] = useState("")
   const [promptText, setPromptText] = useState("")
+  const [apiKey, setApiKey] = useState("")
   const [promptLength, setPromptLength] = useState(256)
 
   const [analysis, setAnalysis] = useState<PromptAnalysis | null>(null)
@@ -277,7 +279,7 @@ export function StudioView() {
     startAnalyzing(async () => {
       setAnalysis(null)
       try {
-        const result = await analyzeAndSuggestImprovements({ prompt: promptText })
+        const result = await analyzeAndSuggestImprovements({ prompt: promptText, apiKey: apiKey || undefined })
         setAnalysis(result)
         handleSaveToHistory()
       } catch (error) {
@@ -303,7 +305,7 @@ export function StudioView() {
     startEvaluating(async () => {
       setMetrics(null)
       try {
-        const result = await evaluatePromptQuality(promptText)
+        const result = await evaluatePromptQuality(promptText, apiKey || undefined)
         setMetrics(result)
         handleSaveToHistory()
       } catch (error) {
@@ -331,6 +333,7 @@ export function StudioView() {
       try {
         const result = await optimizePromptRecommendations({
           promptText: promptText,
+          apiKey: apiKey || undefined,
         })
         setRecommendations(result)
         handleSaveToHistory()
@@ -407,21 +410,17 @@ export function StudioView() {
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="prompt-length">
-                Desired Length: {promptLength} tokens
-              </Label>
-              <Input
-                id="prompt-length"
-                type="number"
-                min={50}
-                max={2048}
-                step={1}
-                value={promptLength}
-                onChange={(e) =>
-                  setPromptLength(parseInt(e.target.value, 10) || 0)
-                }
-                className="w-48"
-              />
+                <Label htmlFor="api-key" className="flex items-center gap-2">
+                    <Key className="w-4 h-4" />
+                    Custom Google API Key (Optional)
+                </Label>
+                <Input
+                    id="api-key"
+                    type="password"
+                    placeholder="Enter your Google API Key to override the default"
+                    value={apiKey}
+                    onChange={(e) => setApiKey(e.target.value)}
+                />
             </div>
             <div className="flex flex-wrap gap-2">
               <Button onClick={handleAnalyze} disabled={isAnalyzing}>
