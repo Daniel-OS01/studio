@@ -334,7 +334,7 @@ export function RefinementWizard({
         return (
           <div className="flex flex-col h-full">
             <div className="flex items-center mb-4 shrink-0">
-              <Button onClick={handleBack} variant="ghost" size="sm">
+              <Button onClick={handleBack} variant="ghost" size="sm" disabled={isGenerating}>
                 <ArrowLeft className="mr-2 h-4 w-4" /> Back
               </Button>
               <div className="flex-1 text-center font-bold">
@@ -362,7 +362,7 @@ export function RefinementWizard({
                             ? 'default'
                             : 'outline'
                         }
-                        className="w-full text-left h-auto py-2 whitespace-normal flex items-start"
+                        className="w-full text-left h-auto py-2 flex items-start whitespace-normal"
                         onClick={() => handleOptionSelect(qIndex, option.title)}
                       >
                         {option.icon && (
@@ -391,7 +391,7 @@ export function RefinementWizard({
         return (
           <div className="space-y-4 h-full flex flex-col">
              <div className="flex items-center mb-2 shrink-0">
-              <Button onClick={handleBack} variant="ghost" size="sm">
+              <Button onClick={handleBack} variant="ghost" size="sm" disabled={isGenerating}>
                 <ArrowLeft className="mr-2 h-4 w-4" /> Back
               </Button>
               <div className="flex-1 text-center font-bold">
