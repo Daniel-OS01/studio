@@ -257,11 +257,11 @@ export function RefinementWizard({
                         <Button 
                             key={option.title}
                             variant="outline"
-                            className="w-full justify-start text-left h-auto"
+                            className="w-full justify-start text-left h-auto py-2"
                             onClick={() => handleOptionSelect(option.title)}
                         >
-                            {option.icon && <span className="text-lg mr-2">{option.icon}</span>}
-                            {option.title}
+                            {option.icon && <span className="text-xl mr-3">{option.icon}</span>}
+                            <span>{option.title}</span>
                         </Button>
                     ))}
                 </div>
@@ -291,13 +291,13 @@ export function RefinementWizard({
                                             className="cursor-pointer hover:bg-accent hover:text-accent-foreground transition-colors group"
                                             onClick={() => handleSuggestionApply(option.text)}
                                         >
-                                            <CardHeader className="p-3">
+                                            <CardHeader className="p-4">
                                                 <CardTitle className="text-base font-semibold flex items-center justify-between">
                                                     {option.title}
                                                     <Button size="sm" variant="secondary" className="opacity-0 group-hover:opacity-100 transition-opacity">Apply</Button>
                                                 </CardTitle>
                                             </CardHeader>
-                                            <CardContent className="p-3 pt-0">
+                                            <CardContent className="p-4 pt-0">
                                                  <p className="text-xs font-style: italic text-muted-foreground/80 group-hover:text-accent-foreground/80">
                                                     Example: {option.example}
                                                 </p>

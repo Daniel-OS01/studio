@@ -8,7 +8,8 @@
  */
 
 import { googleAI } from '@genkit-ai/google-genai';
-import { genkit, z } from 'genkit';
+import { genkit } from 'genkit';
+import { z } from 'zod';
 
 const GenerateRefinementOptionsInputSchema = z.object({
   prompt: z.string().describe('The initial prompt to refine.'),
