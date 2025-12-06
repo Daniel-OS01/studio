@@ -36,7 +36,7 @@ const RefinementOptionSchema = z.object({
     .describe('An example of how this option improves a sample prompt.'),
 });
 
-const RefinePromptOutputSchema = z.object({
+const RefinementQuestionSchema = z.object({
   title: z
     .string()
     .describe('The question or title for this refinement step.'),
@@ -51,6 +51,12 @@ const RefinePromptOutputSchema = z.object({
       'A list of 3 to 6 interactive options for the user to choose from.'
     ),
 });
+
+const RefinePromptOutputSchema = z
+  .array(RefinementQuestionSchema)
+  .min(3)
+  .max(5)
+  .describe('An array of 3 to 5 refinement questions.');
 
 export type RefinePromptOutput = z.infer<typeof RefinePromptOutputSchema>;
 
@@ -67,7 +73,9 @@ const refinePromptFlow = async ({
   modelName,
 }: RefinePromptInput) => {
   const keysToTry = apiKeys?.length ? apiKeys : [process.env.GEMINI_API_KEY];
-  const model = modelName ? googleAI.model(modelName) : 'googleai/gemini-2.5-flash';
+  const model = modelName
+    ? googleAI.model(modelName)
+    : 'googleai/gemini-2.5-flash';
 
   for (const key of keysToTry) {
     if (!key) continue;
@@ -78,26 +86,26 @@ const refinePromptFlow = async ({
 
       const { output } = await localAi.generate({
         model: model,
-        prompt: `You are an expert prompt engineer. Your task is to generate a set of specific, actionable suggestions to refine a user's prompt based on their stated goals.
+        prompt: `You are an expert prompt engineer. Your task is to generate a set of diverse, actionable questions to refine a user's prompt based on their stated goals.
 
         The user's current prompt is:
         "${prompt}"
         
         The user's high-level refinement goals are: "${refinementGoal}"
         
-        Based on this, you MUST generate ONE final, clear question and a list of 3 to 6 diverse, actionable options to apply to the prompt.
+        Based on this, you MUST generate a list of 3 to 5 different questions. Each question must be from a different perspective (e.g., one about tone, one about format, one about specificity, etc.).
+
+        For each question in the list, you MUST provide:
+        1. A clear 'title' for the question (e.g., "How can we make the subject more specific?").
+        2. A brief 'explanation' of why this question is important for achieving the user's goal.
+        3. A list of 3 to 6 diverse, actionable 'options' for that question.
         
-        For this step, you MUST provide:
-        1.  A clear 'title' for the question (e.g., "How can we make the subject more specific?").
-        2.  A brief 'explanation' of why this question is important for achieving the user's goal.
-        3.  A list of 3 to 6 diverse 'options'.
-        
-        Each individual 'option' MUST include:
-        - A 'title' (for a button).
+        Each individual 'option' within a question MUST include:
+        - A short 'title' (for a button).
         - The 'text' that should be appended to the original prompt if chosen.
         - An 'example' showing how the suggestion improves a sample prompt, similar to pretty-prompt.com.
         
-        Example for goal "Increase specificity":
+        Example for a single question object in the final array:
         {
           "title": "What kind of dragon is it?",
           "explanation": "Defining the dragon's nature will shape the story's conflict and character.",
@@ -108,7 +116,7 @@ const refinePromptFlow = async ({
           ]
         }
         
-        Analyze the prompt and the user's goals, then generate the final refinement step.`,
+        Now, generate the full array of 3 to 5 questions based on the user's prompt and goals.`,
         output: {
           schema: RefinePromptOutputSchema,
         },

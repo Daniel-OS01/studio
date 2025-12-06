@@ -4,7 +4,7 @@ import type {
 import type { ComparePromptVersionsOutput } from "@/ai/flows/compare-prompt-versions"
 import type { EvaluatePromptQualityOutput } from "@/ai/flows/evaluate-prompt-quality"
 import type { OptimizePromptRecommendationsOutput } from "@/ai/flows/optimize-prompt-recommendations"
-import type { RefinePromptOutput } from "@/ai/flows/refine-prompt"
+import type { RefinePromptOutput as RefinePromptOutputFlow } from "@/ai/flows/refine-prompt"
 import type { GenerateRefinementOptionsOutput } from "@/ai/flows/generate-refinement-options"
 
 
@@ -25,7 +25,7 @@ export type PromptAnalysis = AnalyzeAndSuggestImprovementsOutput
 export type PromptRecommendations = OptimizePromptRecommendationsOutput
 export type PromptComparison = ComparePromptVersionsOutput
 
-export type RefinementStep = RefinePromptOutput
+export type RefinePromptOutput = RefinePromptOutputFlow
 
 export type RefinementOptions = GenerateRefinementOptionsOutput;
 

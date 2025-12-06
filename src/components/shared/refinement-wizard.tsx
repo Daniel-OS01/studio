@@ -4,7 +4,7 @@ import { generateRefinementOptions } from '@/ai/flows/generate-refinement-option
 import { refinePrompt } from '@/ai/flows/refine-prompt';
 import { useLocalStorage } from '@/hooks/use-local-storage';
 import { useToast } from '@/hooks/use-toast';
-import type { AppSettings, RefinementOptions, RefinementStep } from '@/lib/types';
+import type { AppSettings, RefinementOptions, RefinePromptOutput } from '@/lib/types';
 import {
   AlertTriangle,
   ArrowLeft,
@@ -14,6 +14,12 @@ import {
 } from 'lucide-react';
 import React, { useState, useTransition, useCallback, useEffect } from 'react';
 import { Button } from '../ui/button';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
 
 interface RefinementWizardProps {
@@ -26,7 +32,7 @@ type WizardStep =
   | { type: 'loading'; message: string }
   | { type: 'error'; message: string }
   | { type: 'options'; data: RefinementOptions; topic: string }
-  | { type: 'suggestions'; data: RefinementStep }
+  | { type: 'suggestions'; data: RefinePromptOutput }
   | { type: 'finished' };
 
 const WIZARD_FLOW: { topic: string; title: string }[] = [
@@ -149,6 +155,25 @@ export function RefinementWizard({
   };
   
   const handleBack = () => {
+    if (step.type === 'suggestions') {
+        const prevStepIndex = WIZARD_FLOW.length -1;
+        const newHistory = history.slice(0,-1);
+        setCurrentStepIndex(prevStepIndex);
+        setHistory(newHistory);
+        setStep({ type: 'loading', message: "Going back..."})
+         startTransition(async () => {
+            const result = await generateRefinementOptions({
+                prompt: initialPrompt,
+                topic: WIZARD_FLOW[prevStepIndex].topic,
+                history: newHistory,
+                apiKeys: getApiKeys(),
+                modelName: settings.models.analysis,
+            });
+            setStep({ type: 'options', data: result, topic: WIZARD_FLOW[prevStepIndex].topic });
+         });
+        return;
+    }
+
     if (currentStepIndex > 0) {
         const prevStepIndex = currentStepIndex - 1;
         const newHistory = history.slice(0, -1);
@@ -248,34 +273,41 @@ export function RefinementWizard({
                  <Button onClick={handleBack} variant="ghost" size="sm" className="mb-2">
                     <ArrowLeft className="mr-2 h-4 w-4" /> Back
                 </Button>
-                <h3 className="font-semibold text-lg">{step.data.title}</h3>
-                <p className="text-sm text-muted-foreground">{step.data.explanation}</p>
-                <div className="space-y-3">
-                    {step.data.options.map((option, index) => (
-                        <Card
-                        key={index}
-                        className="cursor-pointer hover:bg-accent hover:text-accent-foreground transition-colors group"
-                        onClick={() => handleSuggestionApply(option.text)}
-                      >
-                        <CardHeader className="p-4">
-                          <CardTitle className="text-base font-semibold flex items-center justify-between">
-                            {option.title}
-                            <Button
-                              size="sm"
-                              className="opacity-0 group-hover:opacity-100 transition-opacity"
-                            >
-                              Apply
-                            </Button>
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent className="p-4 pt-0 text-sm">
-                            <p className="text-xs font-style: italic text-muted-foreground">
-                              Example: {option.example}
-                            </p>
-                        </CardContent>
-                      </Card>
+                <Accordion type="single" collapsible className="w-full" defaultValue="item-0">
+                    {step.data.map((question, qIndex) => (
+                        <AccordionItem value={`item-${qIndex}`} key={qIndex}>
+                            <AccordionTrigger>
+                                <div className="text-left">
+                                    <h4 className="font-semibold">{question.title}</h4>
+                                    <p className="text-sm text-muted-foreground font-normal">{question.explanation}</p>
+                                </div>
+                            </AccordionTrigger>
+                            <AccordionContent>
+                                <div className="space-y-2">
+                                    {question.options.map((option, oIndex) => (
+                                        <Card 
+                                            key={oIndex}
+                                            className="cursor-pointer hover:bg-accent hover:text-accent-foreground transition-colors group"
+                                            onClick={() => handleSuggestionApply(option.text)}
+                                        >
+                                            <CardHeader className="p-3">
+                                                <CardTitle className="text-base font-semibold flex items-center justify-between">
+                                                    {option.title}
+                                                    <Button size="sm" variant="secondary" className="opacity-0 group-hover:opacity-100 transition-opacity">Apply</Button>
+                                                </CardTitle>
+                                            </CardHeader>
+                                            <CardContent className="p-3 pt-0">
+                                                 <p className="text-xs font-style: italic text-muted-foreground/80 group-hover:text-accent-foreground/80">
+                                                    Example: {option.example}
+                                                </p>
+                                            </CardContent>
+                                        </Card>
+                                    ))}
+                                </div>
+                            </AccordionContent>
+                        </AccordionItem>
                     ))}
-                </div>
+                </Accordion>
             </div>
         );
     
