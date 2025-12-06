@@ -1,4 +1,5 @@
 
+
 "use client"
 
 import { ClientOnly } from "@/components/shared/client-only"
@@ -93,7 +94,7 @@ function SettingsViewContent() {
     }
     setLocalSettings(prev => ({
         ...prev,
-        apiKeys: [...prev.apiKeys, { name: newKeyName, key: newKeyValue }]
+        apiKeys: [...(prev.apiKeys || []), { name: newKeyName, key: newKeyValue }]
     }));
     setNewKeyName("");
     setNewKeyValue("");
@@ -102,7 +103,7 @@ function SettingsViewContent() {
   const handleDeleteKey = (index: number) => {
       setLocalSettings(prev => ({
           ...prev,
-          apiKeys: prev.apiKeys.filter((_, i) => i !== index),
+          apiKeys: (prev.apiKeys || []).filter((_, i) => i !== index),
           activeApiKeyIndex: prev.activeApiKeyIndex >= index ? Math.max(0, prev.activeApiKeyIndex -1) : prev.activeApiKeyIndex
       }));
   }
@@ -119,7 +120,7 @@ function SettingsViewContent() {
   const isCustomModel = (modelName: string) =>
     modelName !== "" && !availableModels.includes(modelName)
 
-  const currentKey = savedSettings.apiKeys[savedSettings.activeApiKeyIndex];
+  const currentKey = (savedSettings.apiKeys || [])[savedSettings.activeApiKeyIndex];
 
   return (
     <main className="flex-1 flex flex-col p-4 gap-4 overflow-hidden">
@@ -132,7 +133,7 @@ function SettingsViewContent() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            {localSettings.apiKeys.map((apiKey, index) => (
+            {(localSettings.apiKeys || []).map((apiKey, index) => (
               <div key={index} className="flex items-center gap-2 p-2 rounded-md bg-muted">
                 <Key className="text-muted-foreground" />
                 <div className="flex-1">
