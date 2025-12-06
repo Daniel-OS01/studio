@@ -20,12 +20,6 @@ import {
 import React, { useState, useTransition, useCallback, useEffect } from 'react';
 import { Button } from '../ui/button';
 import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from '@/components/ui/accordion';
-import {
   Card,
   CardContent,
   CardDescription,
@@ -58,7 +52,9 @@ export function RefinementWizard({
   const [step, setStep] = useState<WizardStep>({ type: 'idle' });
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [history, setHistory] = useState<string[]>([]);
-  const [selectedOptions, setSelectedOptions] = useState<Record<number, string>>({});
+  const [selectedOptions, setSelectedOptions] = useState<
+    Record<number, string>
+  >({});
   const [isGenerating, startTransition] = useTransition();
   const { toast } = useToast();
 
@@ -117,7 +113,7 @@ export function RefinementWizard({
   }, [initialPrompt, getApiKeys, toast, settings.models.analysis]);
 
   const handleOptionSelect = (questionIndex: number, optionTitle: string) => {
-    setSelectedOptions(prev => ({
+    setSelectedOptions((prev) => ({
       ...prev,
       [questionIndex]: optionTitle,
     }));
@@ -126,12 +122,12 @@ export function RefinementWizard({
   const handleNextStep = useCallback(() => {
     const currentQuestionCount = step.type === 'options' ? step.data.length : 0;
     if (Object.keys(selectedOptions).length < currentQuestionCount) {
-        toast({
-            title: "Selections missing",
-            description: "Please select an option for each question.",
-            variant: "destructive"
-        });
-        return;
+      toast({
+        title: 'Selections missing',
+        description: 'Please select an option for each question.',
+        variant: 'destructive',
+      });
+      return;
     }
 
     const selections = Object.values(selectedOptions);
@@ -195,7 +191,7 @@ export function RefinementWizard({
     settings.models.analysis,
     selectedOptions,
     step,
-    toast
+    toast,
   ]);
 
   const handleSuggestionApply = (text: string) => {
@@ -210,7 +206,10 @@ export function RefinementWizard({
   const handleBack = () => {
     if (step.type === 'suggestions') {
       const prevStepIndex = WIZARD_FLOW.length - 1;
-      const newHistory = history.slice(0, history.length - Object.keys(selectedOptions).length);
+      const newHistory = history.slice(
+        0,
+        history.length - Object.keys(selectedOptions).length
+      );
       setCurrentStepIndex(prevStepIndex);
       setHistory(newHistory);
       setSelectedOptions({});
@@ -234,7 +233,10 @@ export function RefinementWizard({
 
     if (currentStepIndex > 0) {
       const prevStepIndex = currentStepIndex - 1;
-      const newHistory = history.slice(0, history.length - Object.keys(selectedOptions).length);
+      const newHistory = history.slice(
+        0,
+        history.length - Object.keys(selectedOptions).length
+      );
       setCurrentStepIndex(prevStepIndex);
       setHistory(newHistory);
       setSelectedOptions({});
@@ -314,45 +316,60 @@ export function RefinementWizard({
 
       case 'options':
         const questions = step.data;
-        const allQuestionsAnswered = Object.keys(selectedOptions).length === questions.length;
-        
+        const allQuestionsAnswered =
+          Object.keys(selectedOptions).length === questions.length;
+
         return (
-          <div className='flex flex-col h-full'>
-            <div className="flex items-center mb-4">
-                <Button onClick={handleBack} variant="ghost" size="sm">
-                  <ArrowLeft className="mr-2 h-4 w-4" /> Back
-                </Button>
-                <div className="flex-1 text-center font-bold">
-                    {WIZARD_FLOW[currentStepIndex].title}
-                </div>
+          <div className="flex flex-col h-full">
+            <div className="flex items-center mb-4 shrink-0">
+              <Button onClick={handleBack} variant="ghost" size="sm">
+                <ArrowLeft className="mr-2 h-4 w-4" /> Back
+              </Button>
+              <div className="flex-1 text-center font-bold">
+                {WIZARD_FLOW[currentStepIndex].title}
+              </div>
             </div>
-            <div className='space-y-4 flex-1 overflow-y-auto pr-2'>
+            <div className="space-y-4 flex-1 overflow-y-auto pr-2">
               {questions.map((question, qIndex) => (
                 <Card key={qIndex}>
-                    <CardHeader>
-                        <CardTitle className="text-base flex items-center gap-2">{question.icon && <span className='text-lg'>{question.icon}</span>} {question.title}</CardTitle>
-                        <CardDescription>{question.explanation}</CardDescription>
-                    </CardHeader>
-                    <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                        {question.options.map((option, oIndex) => (
-                            <Button
-                                key={oIndex}
-                                variant={selectedOptions[qIndex] === option.title ? 'default' : 'outline'}
-                                className="w-full text-left h-auto py-2 whitespace-normal"
-                                onClick={() => handleOptionSelect(qIndex, option.title)}
-                            >
-                                {option.icon && <span className="text-xl mr-3">{option.icon}</span>}
-                                <span>{option.title}</span>
-                            </Button>
-                        ))}
-                    </CardContent>
+                  <CardHeader>
+                    <CardTitle className="text-base flex items-center gap-2">
+                      {question.icon && (
+                        <span className="text-lg">{question.icon}</span>
+                      )}{' '}
+                      {question.title}
+                    </CardTitle>
+                    <CardDescription>{question.explanation}</CardDescription>
+                  </CardHeader>
+                  <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {question.options.map((option, oIndex) => (
+                      <Button
+                        key={oIndex}
+                        variant={
+                          selectedOptions[qIndex] === option.title
+                            ? 'default'
+                            : 'outline'
+                        }
+                        className="w-full text-left h-auto py-2 whitespace-normal flex items-start justify-start"
+                        onClick={() => handleOptionSelect(qIndex, option.title)}
+                      >
+                        {option.icon && (
+                          <span className="text-xl mr-3">{option.icon}</span>
+                        )}
+                        <span>{option.title}</span>
+                      </Button>
+                    ))}
+                  </CardContent>
                 </Card>
               ))}
             </div>
-            <div className='pt-4 flex justify-end'>
-                <Button onClick={handleNextStep} disabled={!allQuestionsAnswered || isGenerating}>
-                    Next <ChevronRight />
-                </Button>
+            <div className="pt-4 flex justify-end shrink-0">
+              <Button
+                onClick={handleNextStep}
+                disabled={!allQuestionsAnswered || isGenerating}
+              >
+                Next <ChevronRight />
+              </Button>
             </div>
           </div>
         );
@@ -360,58 +377,48 @@ export function RefinementWizard({
       case 'suggestions':
         return (
           <div className="space-y-4 h-full flex flex-col">
-            <Button onClick={handleBack} variant="ghost" size="sm" className="mb-2 shrink-0">
+            <Button
+              onClick={handleBack}
+              variant="ghost"
+              size="sm"
+              className="mb-2 shrink-0"
+            >
               <ArrowLeft className="mr-2 h-4 w-4" /> Back
             </Button>
-            <div className="flex-1 overflow-y-auto pr-2">
-              <Accordion
-                type="single"
-                collapsible
-                className="w-full"
-                defaultValue="item-0"
-              >
-                {step.data.map((question, qIndex) => (
-                  <AccordionItem value={`item-${qIndex}`} key={qIndex}>
-                    <AccordionTrigger>
-                      <div className="text-left">
-                        <h4 className="font-semibold">{question.title}</h4>
-                        <p className="text-sm text-muted-foreground font-normal">
-                          {question.explanation}
-                        </p>
-                      </div>
-                    </AccordionTrigger>
-                    <AccordionContent>
-                      <div className="space-y-2">
-                        {question.options.map((option, oIndex) => (
-                          <Card
-                            key={oIndex}
-                            className="cursor-pointer hover:bg-accent hover:text-accent-foreground transition-colors group"
-                            onClick={() => handleSuggestionApply(option.text)}
-                          >
-                            <CardHeader className="p-4">
-                              <CardTitle className="text-base font-semibold flex items-center justify-between">
-                                {option.title}
-                                <Button
-                                  size="sm"
-                                  variant="secondary"
-                                  className="opacity-0 group-hover:opacity-100 transition-opacity"
-                                >
-                                  Apply
-                                </Button>
-                              </CardTitle>
-                            </CardHeader>
-                            <CardContent className="p-4 pt-0">
-                              <p className="text-xs font-style: italic text-muted-foreground/80 group-hover:text-accent-foreground/80">
-                                Example: {option.example}
-                              </p>
-                            </CardContent>
-                          </Card>
-                        ))}
-                      </div>
-                    </AccordionContent>
-                  </AccordionItem>
-                ))}
-              </Accordion>
+            <div className="flex-1 overflow-y-auto pr-2 space-y-4">
+              {step.data.map((question, qIndex) => (
+                <div key={qIndex}>
+                  <h4 className="font-semibold text-base mb-1">{question.title}</h4>
+                  <p className="text-sm text-muted-foreground mb-3">{question.explanation}</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {question.options.map((option, oIndex) => (
+                      <Card
+                        key={oIndex}
+                        className="cursor-pointer hover:bg-accent hover:text-accent-foreground transition-colors group flex flex-col"
+                        onClick={() => handleSuggestionApply(option.text)}
+                      >
+                        <CardHeader className="p-4 flex-1">
+                          <CardTitle className="text-base font-semibold flex items-center justify-between">
+                            {option.title}
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              className="opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                              Apply
+                            </Button>
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="p-4 pt-0">
+                          <p className="text-xs font-style: italic text-muted-foreground/80 group-hover:text-accent-foreground/80">
+                            Example: {option.example}
+                          </p>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         );
