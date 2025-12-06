@@ -13,11 +13,16 @@ import { z } from 'genkit';
 
 const RefinePromptInputSchema = z.object({
   prompt: z.string().describe('The prompt to refine.'),
-  refinementGoal: z.string().describe('A comma-separated list of user-selected goals for this refinement (e.g., "Increase specificity, Target a professional audience").'),
+  refinementGoal: z
+    .string()
+    .describe(
+      'A comma-separated list of user-selected goals for this refinement (e.g., "Increase specificity, Target a professional audience").'
+    ),
   apiKeys: z
     .array(z.string())
     .optional()
     .describe('An optional list of Google API keys to try.'),
+  modelName: z.string().optional().describe('An optional Gemini model name.'),
 });
 export type RefinePromptInput = z.infer<typeof RefinePromptInputSchema>;
 
@@ -26,7 +31,9 @@ const RefinementOptionSchema = z.object({
   text: z
     .string()
     .describe('The text to be appended to the prompt if this option is chosen.'),
-  example: z.string().describe('An example of how this option improves a sample prompt.')
+  example: z
+    .string()
+    .describe('An example of how this option improves a sample prompt.'),
 });
 
 const RefinePromptOutputSchema = z.object({
@@ -53,9 +60,15 @@ export async function refinePrompt(
   return refinePromptFlow(input);
 }
 
-const refinePromptFlow = async ({ prompt, refinementGoal, apiKeys }: RefinePromptInput) => {
+const refinePromptFlow = async ({
+  prompt,
+  refinementGoal,
+  apiKeys,
+  modelName,
+}: RefinePromptInput) => {
   const keysToTry = apiKeys?.length ? apiKeys : [process.env.GEMINI_API_KEY];
-  
+  const model = modelName ? googleAI.model(modelName) : 'googleai/gemini-2.5-flash';
+
   for (const key of keysToTry) {
     if (!key) continue;
     try {
@@ -64,7 +77,7 @@ const refinePromptFlow = async ({ prompt, refinementGoal, apiKeys }: RefinePromp
       });
 
       const { output } = await localAi.generate({
-        model: 'gemini-2.5-flash',
+        model: model,
         prompt: `You are an expert prompt engineer. Your task is to generate a set of specific, actionable suggestions to refine a user's prompt based on their stated goals.
 
         The user's current prompt is:

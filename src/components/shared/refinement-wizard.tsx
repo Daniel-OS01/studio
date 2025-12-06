@@ -83,6 +83,7 @@ export function RefinementWizard({
           topic: WIZARD_FLOW[0].topic,
           history: [],
           apiKeys: getApiKeys(),
+          modelName: settings.models.analysis,
         });
         setStep({ type: 'options', data: result, topic: WIZARD_FLOW[0].topic });
       } catch (e: any) {
@@ -93,7 +94,7 @@ export function RefinementWizard({
         });
       }
     });
-  }, [initialPrompt, getApiKeys, toast]);
+  }, [initialPrompt, getApiKeys, toast, settings.models.analysis]);
 
   const handleOptionSelect = useCallback((optionTitle: string) => {
     const newHistory = [...history, optionTitle];
@@ -110,6 +111,7 @@ export function RefinementWizard({
                 topic: WIZARD_FLOW[nextStepIndex].topic,
                 history: newHistory,
                 apiKeys: getApiKeys(),
+                modelName: settings.models.analysis,
             });
             setStep({ type: 'options', data: result, topic: WIZARD_FLOW[nextStepIndex].topic });
         } catch (e:any) {
@@ -125,6 +127,7 @@ export function RefinementWizard({
             prompt: initialPrompt,
             refinementGoal: newHistory.join(', '),
             apiKeys: getApiKeys(),
+            modelName: settings.models.analysis,
           });
           setStep({ type: 'suggestions', data: result });
         } catch (e: any) {
@@ -132,7 +135,7 @@ export function RefinementWizard({
         }
       });
     }
-  }, [currentStepIndex, history, initialPrompt, getApiKeys]);
+  }, [currentStepIndex, history, initialPrompt, getApiKeys, settings.models.analysis]);
 
   const handleSuggestionApply = (text: string) => {
     onPromptUpdate(
@@ -158,7 +161,8 @@ export function RefinementWizard({
                     prompt: initialPrompt,
                     topic: WIZARD_FLOW[prevStepIndex].topic,
                     history: newHistory,
-                    apiKeys: getApiKeys()
+                    apiKeys: getApiKeys(),
+                    modelName: settings.models.analysis,
                 });
                 setStep({ type: 'options', data: result, topic: WIZARD_FLOW[prevStepIndex].topic });
             } catch(e: any) {

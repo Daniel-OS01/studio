@@ -27,18 +27,23 @@ const GenerateRefinementOptionsInputSchema = z.object({
     .array(z.string())
     .optional()
     .describe('An optional list of Google API keys to try.'),
+  modelName: z.string().optional().describe('An optional Gemini model name.'),
 });
 export type GenerateRefinementOptionsInput = z.infer<
   typeof GenerateRefinementOptionsInputSchema
 >;
 
 const RefinementGoalSchema = z.object({
-  title: z.string().describe('A concise title for the refinement goal (e.g., "Increase output specificity").'),
+  title: z
+    .string()
+    .describe('A concise title for the refinement goal (e.g., "Increase output specificity").'),
   icon: z.string().optional().describe('An optional emoji or icon identifier.'),
 });
 
 const GenerateRefinementOptionsOutputSchema = z.object({
-  title: z.string().describe('The question for this wizard step (e.g., "What is the primary goal?").'),
+  title: z
+    .string()
+    .describe('The question for this wizard step (e.g., "What is the primary goal?").'),
   explanation: z.string().describe('A brief explanation of the step.'),
   options: z
     .array(RefinementGoalSchema)
@@ -61,9 +66,11 @@ const generateRefinementOptionsFlow = async ({
   topic,
   history,
   apiKeys,
+  modelName,
 }: GenerateRefinementOptionsInput) => {
   const keysToTry = apiKeys?.length ? apiKeys : [process.env.GEMINI_API_KEY];
-  
+  const model = modelName ? googleAI.model(modelName) : 'googleai/gemini-2.5-flash';
+
   for (const key of keysToTry) {
     if (!key) continue;
     try {
@@ -72,7 +79,7 @@ const generateRefinementOptionsFlow = async ({
       });
 
       const { output } = await localAi.generate({
-        model: 'gemini-2.5-flash',
+        model: model,
         prompt: `You are an expert prompt engineer building an interactive wizard. Your task is to generate a single step for the wizard.
         The user's prompt is: "${prompt}"
         The topic for this step is: "${topic}"
