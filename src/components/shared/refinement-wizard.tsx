@@ -720,7 +720,6 @@ export function RefinementWizard({
   };
 
   const renderWizardHeader = () => {
-    const isWizardActive = step.type === 'options' || step.type === 'suggestions';
     return (
         <CardHeader className="relative">
             <div className="flex items-center justify-between">
@@ -731,15 +730,13 @@ export function RefinementWizard({
                 </CardDescription>
               </div>
             </div>
-            {isWizardActive && (
-                 <div className="absolute top-4 right-4">
-                     <HistoryDialog
-                        history={promptHistory}
-                        onRestore={handleRestoreFromHistory}
-                        getApiKeys={getApiKeys}
-                    />
-                 </div>
-            )}
+            <div className="absolute top-4 right-4">
+                <HistoryDialog
+                    history={promptHistory}
+                    onRestore={handleRestoreFromHistory}
+                    getApiKeys={getApiKeys}
+                />
+            </div>
         </CardHeader>
     )
   }
