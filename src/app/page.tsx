@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Bot, Library, Settings, Users } from "lucide-react"
+import { Bot, Library, Settings, Users, Wand } from "lucide-react"
 
 import {
   Sidebar,
@@ -21,6 +21,7 @@ import { StudioView } from "@/components/views/studio-view"
 import { Logo } from "@/components/icons"
 import type { View } from "@/lib/types"
 import { ClientOnly } from "@/components/shared/client-only"
+import { RefineView } from "@/components/views/refine-view"
 
 export default function Home() {
   const [activeView, setActiveView] = useState<View>("studio")
@@ -28,7 +29,9 @@ export default function Home() {
   const renderView = () => {
     switch (activeView) {
       case "studio":
-        return <StudioView />
+        return <StudioView setView={setActiveView} />
+      case "refine":
+        return <RefineView setView={setActiveView} />
       case "local-library":
         return <LocalLibraryView setView={setActiveView} />
       case "community-library":
@@ -36,7 +39,7 @@ export default function Home() {
       case "settings":
         return <SettingsView />
       default:
-        return <StudioView />
+        return <StudioView setView={setActiveView} />
     }
   }
 
@@ -61,6 +64,16 @@ export default function Home() {
               >
                 <Bot />
                 <span>Studio</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+             <SidebarMenuItem>
+              <SidebarMenuButton
+                onClick={() => setActiveView("refine")}
+                isActive={activeView === "refine"}
+                tooltip="Refine"
+              >
+                <Wand />
+                <span>Refine</span>
               </SidebarMenuButton>
             </SidebarMenuItem>
             <SidebarMenuItem>

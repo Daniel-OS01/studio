@@ -2,19 +2,15 @@
 
 import {
   analyzeAndSuggestImprovements,
-  AnalyzeAndSuggestImprovementsInput,
 } from '@/ai/flows/analyze-and-suggest-improvements';
 import {
   comparePromptVersions,
-  ComparePromptVersionsInput,
 } from '@/ai/flows/compare-prompt-versions';
 import {
   evaluatePromptQuality,
-  EvaluatePromptQualityInput,
 } from '@/ai/flows/evaluate-prompt-quality';
 import {
   optimizePromptRecommendations,
-  OptimizePromptRecommendationsInput,
 } from '@/ai/flows/optimize-prompt-recommendations';
 import { ClientOnly } from '@/components/shared/client-only';
 import { ScoreGauge } from '@/components/shared/score-gauge';
@@ -47,9 +43,10 @@ import type {
   Prompt,
   PromptAnalysis,
   PromptComparison,
-  PromptRecommendations,
   PromptVersion,
   QualityMetrics,
+  View,
+  PromptRecommendations
 } from '@/lib/types';
 import { formatDistanceToNow } from 'date-fns';
 import {
@@ -62,7 +59,6 @@ import {
   Sparkles,
   TestTubeDiagonal,
   ThumbsUp,
-  Wand,
 } from 'lucide-react';
 import React, { useState, useTransition } from 'react';
 import { RefinePromptWizard } from './refine-prompt-wizard';
@@ -257,7 +253,11 @@ function HistoryTabContent({
   );
 }
 
-export function StudioView() {
+interface StudioViewProps {
+  setView: (view: View) => void;
+}
+
+export function StudioView({ setView }: StudioViewProps) {
   const [promptName, setPromptName] = useState('');
   const [promptText, setPromptText] = useState('');
 
@@ -436,11 +436,6 @@ export function StudioView() {
     });
   };
 
-  const handleApplySuggestion = (suggestion: string) => {
-    setPromptText((prev) => prev.trim() + ' ' + suggestion.trim());
-  };
-
-
   return (
     <div className="flex flex-col h-screen bg-background">
       <header className="p-4 border-b">
@@ -529,7 +524,6 @@ export function StudioView() {
         <Tabs defaultValue="analysis" className="flex flex-col">
           <TabsList>
             <TabsTrigger value="analysis">Analysis</TabsTrigger>
-            <TabsTrigger value="refine">Refine</TabsTrigger>
             <TabsTrigger value="metrics">Metrics</TabsTrigger>
             <TabsTrigger value="recommendations">Recommendations</TabsTrigger>
             <TabsTrigger value="history">History</TabsTrigger>
@@ -582,20 +576,6 @@ export function StudioView() {
             </Card>
           </TabsContent>
           
-          <TabsContent value="refine" className="flex-1 overflow-auto mt-4">
-            <Card className="h-full">
-              <CardHeader>
-                <CardTitle>Refine Prompt</CardTitle>
-                <CardDescription>
-                  An interactive wizard to help you improve your prompt step-by-step.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <RefinePromptWizard promptText={promptText} onApplySuggestion={handleApplySuggestion} />
-              </CardContent>
-            </Card>
-          </TabsContent>
-
           <TabsContent value="metrics" className="flex-1 overflow-auto mt-4">
             <Card className="h-full">
               <CardHeader>
