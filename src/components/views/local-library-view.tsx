@@ -1,14 +1,26 @@
+
 "use client"
 
 import { PromptCard } from "@/components/shared/prompt-card"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogClose,
+} from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
 import { useToast } from "@/hooks/use-toast"
 import { useLocalStorage } from "@/hooks/use-local-storage"
 import type { Prompt, View } from "@/lib/types"
-import { Download, Upload } from "lucide-react"
-import React, { useRef } from "react"
+import { Download, Upload, Pencil } from "lucide-react"
+import React, { useRef, useState } from "react"
 import { ClientOnly } from "@/components/shared/client-only"
 
 interface LocalLibraryViewProps {
@@ -20,9 +32,12 @@ function LocalLibraryViewContent({ setView }: LocalLibraryViewProps) {
     "prompt-forge-library",
     []
   )
-  const [searchTerm, setSearchTerm] = React.useState("")
+  const [searchTerm, setSearchTerm] = useState("")
   const fileInputRef = useRef<HTMLInputElement>(null)
   const { toast } = useToast()
+
+  const [editingPrompt, setEditingPrompt] = useState<Prompt | null>(null)
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
 
   const filteredPrompts = prompts.filter(
     (p) =>
@@ -37,6 +52,24 @@ function LocalLibraryViewContent({ setView }: LocalLibraryViewProps) {
     });
     setView("studio");
   }
+  
+  const handleOpenEditDialog = (prompt: Prompt) => {
+    setEditingPrompt({ ...prompt });
+    setIsEditDialogOpen(true);
+  }
+
+  const handleSaveChanges = () => {
+    if (!editingPrompt) return;
+
+    setPrompts(prompts.map((p) => p.id === editingPrompt.id ? editingPrompt : p));
+    toast({
+      title: "Prompt Updated",
+      description: `"${editingPrompt.name}" has been successfully updated.`,
+    });
+    setIsEditDialogOpen(false);
+    setEditingPrompt(null);
+  };
+
 
   const handleDeletePrompt = (id: string) => {
     setPrompts(prompts.filter((p) => p.id !== id))
@@ -152,6 +185,14 @@ function LocalLibraryViewContent({ setView }: LocalLibraryViewProps) {
                     <Button
                       variant="ghost"
                       size="sm"
+                      onClick={() => handleOpenEditDialog(prompt)}
+                    >
+                      <Pencil className="mr-2 h-4 w-4" />
+                      Edit
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
                       onClick={() => handleDeletePrompt(prompt.id)}
                     >
                       Delete
@@ -174,6 +215,52 @@ function LocalLibraryViewContent({ setView }: LocalLibraryViewProps) {
           </div>
         )}
       </div>
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Prompt</DialogTitle>
+            <DialogDescription>
+              Modify the name and text of your prompt.
+            </DialogDescription>
+          </DialogHeader>
+          {editingPrompt && (
+             <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="name" className="text-right">
+                  Name
+                </Label>
+                <Input
+                  id="name"
+                  value={editingPrompt.name}
+                  onChange={(e) => setEditingPrompt({...editingPrompt, name: e.target.value })}
+                  className="col-span-3"
+                />
+              </div>
+              <div className="grid grid-cols-4 items-start gap-4">
+                <Label htmlFor="text" className="text-right pt-2">
+                  Text
+                </Label>
+                <Textarea
+                  id="text"
+                  value={editingPrompt.text}
+                  onChange={(e) => setEditingPrompt({...editingPrompt, text: e.target.value })}
+                  className="col-span-3 min-h-[150px] resize-y"
+                />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button type="button" variant="secondary">
+                Cancel
+              </Button>
+            </DialogClose>
+            <Button type="button" onClick={handleSaveChanges}>
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   )
 }
@@ -197,3 +284,5 @@ export function LocalLibraryView({ setView }: LocalLibraryViewProps) {
     </div>
   )
 }
+
+    
