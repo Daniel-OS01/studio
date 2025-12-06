@@ -21,6 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { useLocalStorage } from "@/hooks/use-local-storage"
 import { useToast } from "@/hooks/use-toast"
 import type { AppSettings, ApiKey } from "@/lib/types"
@@ -128,25 +129,30 @@ function SettingsViewContent() {
         <CardHeader>
           <CardTitle>API Key Management</CardTitle>
           <CardDescription>
-            Add and manage multiple Google API keys. The app will rotate through them.
+            Add and manage multiple Google API keys. Select one to be active.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="space-y-2">
+          <RadioGroup
+            value={localSettings.activeApiKeyIndex?.toString() ?? "0"}
+            onValueChange={(value) => setLocalSettings(prev => ({ ...prev, activeApiKeyIndex: parseInt(value, 10)}))}
+            className="space-y-2"
+          >
             {(localSettings.apiKeys || []).map((apiKey, index) => (
-              <div key={index} className="flex items-center gap-2 p-2 rounded-md bg-muted">
-                <Key className="text-muted-foreground" />
+              <Label key={index} htmlFor={`key-${index}`} className="flex items-center gap-4 p-2 rounded-md bg-muted has-[:checked]:bg-accent has-[:checked]:text-accent-foreground cursor-pointer">
+                <RadioGroupItem value={index.toString()} id={`key-${index}`} />
+                <Key />
                 <div className="flex-1">
                   <p className="font-semibold">{apiKey.name}</p>
-                  <p className="text-sm text-muted-foreground truncate">{`**********${apiKey.key.slice(-4)}`}</p>
+                  <p className="text-sm opacity-70 truncate">{`**********${apiKey.key.slice(-4)}`}</p>
                 </div>
-                <Button variant="ghost" size="icon" onClick={() => handleDeleteKey(index)}>
+                <Button variant="ghost" size="icon" onClick={(e) => { e.preventDefault(); handleDeleteKey(index)}}>
                   <Trash2 className="text-destructive"/>
                 </Button>
-              </div>
+              </Label>
             ))}
-          </div>
-          <div className="flex items-end gap-2">
+          </RadioGroup>
+          <div className="flex items-end gap-2 pt-4">
             <div className="grid gap-1.5 flex-1">
               <Label htmlFor="new-key-name">Key Name</Label>
               <Input id="new-key-name" placeholder="e.g., Personal Key" value={newKeyName} onChange={(e) => setNewKeyName(e.target.value)} />
@@ -327,3 +333,5 @@ export function SettingsView() {
     </div>
   )
 }
+
+    
