@@ -121,7 +121,7 @@ function SettingsViewContent() {
   const isCustomModel = (modelName: string) =>
     modelName !== "" && !availableModels.includes(modelName)
 
-  const currentKey = (savedSettings.apiKeys || [])[savedSettings.activeApiKeyIndex];
+  const currentKey = (localSettings.apiKeys || [])[localSettings.activeApiKeyIndex];
 
   return (
     <main className="flex-1 flex flex-col p-4 gap-4 overflow-hidden">
@@ -333,5 +333,3 @@ export function SettingsView() {
     </div>
   )
 }
-
-    
