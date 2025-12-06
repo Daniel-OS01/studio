@@ -60,7 +60,7 @@ import { ScoreGauge } from "../shared/score-gauge"
 export function StudioView() {
   const [promptName, setPromptName] = useState("")
   const [promptText, setPromptText] = useState("")
-  const [promptLength, setPromptLength] = useState(256)
+  const [promptLength, setPromptLength] = useState([256])
 
   const [analysis, setAnalysis] = useState<PromptAnalysis | null>(null)
   const [metrics, setMetrics] = useState<QualityMetrics | null>(null)
@@ -280,15 +280,15 @@ export function StudioView() {
             </div>
             <div className="grid gap-2">
               <Label htmlFor="prompt-length">
-                Desired Length: {promptLength} tokens
+                Desired Length: {promptLength[0]} tokens
               </Label>
               <Slider
                 id="prompt-length"
                 min={50}
                 max={2048}
                 step={1}
-                value={[promptLength]}
-                onValueChange={(value) => setPromptLength(value[0])}
+                value={promptLength}
+                onValueChange={setPromptLength}
               />
             </div>
             <div className="flex flex-wrap gap-2">
