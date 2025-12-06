@@ -90,7 +90,7 @@ const generateRefinementOptionsFlow = async ({
         }
         
         Generate a clear question ('title') and a brief 'explanation' for this step.
-        Then, provide 3-5 diverse, high-level refinement goals ('options') related to the topic.
+        Then, you MUST provide a list of 3 to 5 diverse, high-level refinement goals ('options') related to the topic.
         Each option should have a short 'title'.
         
         Example for topic "Primary Goal":

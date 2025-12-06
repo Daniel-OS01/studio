@@ -85,7 +85,7 @@ const refinePromptFlow = async ({
         
         The user's high-level refinement goals are: "${refinementGoal}"
         
-        Based on this, generate ONE final, clear question and 3-5 diverse, actionable options to apply to the prompt.
+        Based on this, generate ONE final, clear question and a list of 3 to 5 diverse, actionable options to apply to the prompt.
         
         For this step, you MUST provide:
         1.  A clear 'title' for the question (e.g., "How can we make the subject more specific?").
@@ -103,7 +103,8 @@ const refinePromptFlow = async ({
           "explanation": "Defining the dragon's nature will shape the story's conflict and character.",
           "options": [
             { "title": "A wise, ancient dragon", "text": "The story should feature a wise, ancient dragon.", "example": "For a story about a library, adding '...a wise, ancient dragon' as the librarian adds depth." },
-            { "title": "A young, reckless dragon", "text": "The story should feature a young, reckless dragon.", "example": "For a story about a race, adding '...featuring a young, reckless dragon' raises the stakes." }
+            { "title": "A young, reckless dragon", "text": "The story should feature a young, reckless dragon.", "example": "For a story about a race, adding '...featuring a young, reckless dragon' raises the stakes." },
+            { "title": "A metallic, clockwork dragon", "text": "The story should feature a metallic, clockwork dragon.", "example": "For a sci-fi story, adding '...a metallic, clockwork dragon' sets a steampunk tone." }
           ]
         }
         
