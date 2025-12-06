@@ -35,19 +35,6 @@ export async function analyzeAndSuggestImprovements(
   return analyzeAndSuggestImprovementsFlow(input);
 }
 
-const prompt = ai.definePrompt({
-  name: 'analyzeAndSuggestImprovementsPrompt',
-  input: {schema: z.object({prompt: z.string()})},
-  output: {schema: AnalyzeAndSuggestImprovementsOutputSchema},
-  prompt: `You are an AI prompt expert. Your job is to analyze the prompt provided and suggest improvements.
-
-  Prompt: {{{prompt}}}
-
-  First, provide a detailed analysis of the prompt, including potential weaknesses.
-  Second, provide specific suggestions for improving the prompt to get better results from an AI model.
-  Be as detailed as possible.`,
-});
-
 const analyzeAndSuggestImprovementsFlow = ai.defineFlow(
   {
     name: 'analyzeAndSuggestImprovementsFlow',
@@ -61,11 +48,25 @@ const analyzeAndSuggestImprovementsFlow = ai.defineFlow(
     for (const key of keysToTry) {
       try {
         const plugins = key ? [googleAI({apiKey: key})] : [];
-        const {output} = await prompt({prompt: promptText}, {plugins, model});
-        return output!;
+        const {output} = await ai.generate({
+          prompt: `You are an AI prompt expert. Your job is to analyze the prompt provided and suggest improvements.
+
+Prompt: {{{prompt}}}
+
+First, provide a detailed analysis of the prompt, including potential weaknesses.
+Second, provide specific suggestions for improving the prompt to get better results from an AI model.
+Be as detailed as possible.`,
+          history: [{role: 'user', content: [{text: `Prompt: ${promptText}`}]}],
+          model: model!,
+          output: {
+            schema: AnalyzeAndSuggestImprovementsOutputSchema,
+          },
+          plugins,
+        });
+        return output;
       } catch (error: any) {
         if (error.status === 429 && keysToTry.indexOf(key) < keysToTry.length - 1) {
-          console.log(`API key ${key?.slice(0, 8)}... failed. Trying next key.`);
+          console.log(`API key ${key?.slice(0, 8)}... failed with rate limit. Trying next key.`);
           continue;
         }
         throw error;

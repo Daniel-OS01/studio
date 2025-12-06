@@ -49,36 +49,6 @@ async (input) => {
   }
 );
 
-
-const prompt = ai.definePrompt({
-  name: 'optimizePromptRecommendationsPrompt',
-  input: {schema: z.object({promptText: z.string()})},
-  output: {schema: OptimizePromptRecommendationsOutputSchema},
-  tools: [evaluateBestPracticeTool],
-  prompt: `You are an AI prompt optimizer.  Your job is to take a prompt and provide a list of recommendations on how to improve it. Use the evaluateBestPractice tool to evaluate the best practice.
-
-  Prompt: {{{promptText}}}
-  Here are the recommendations:
-  `, safetySettings: [
-    {
-      category: 'HARM_CATEGORY_HATE_SPEECH',
-      threshold: 'BLOCK_ONLY_HIGH',
-    },
-    {
-      category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
-      threshold: 'BLOCK_NONE',
-    },
-    {
-      category: 'HARM_CATEGORY_HARASSMENT',
-      threshold: 'BLOCK_MEDIUM_AND_ABOVE',
-    },
-    {
-      category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
-      threshold: 'BLOCK_LOW_AND_ABOVE',
-    },
-  ],
-});
-
 const optimizePromptRecommendationsFlow = ai.defineFlow(
   {
     name: 'optimizePromptRecommendationsFlow',
@@ -92,11 +62,41 @@ const optimizePromptRecommendationsFlow = ai.defineFlow(
     for (const key of keysToTry) {
         try {
             const plugins = key ? [googleAI({apiKey: key})] : [];
-            const {output} = await prompt({promptText}, {plugins, model});
-            return output!;
+            const {output} = await ai.generate({
+                prompt: `You are an AI prompt optimizer. Your job is to take a prompt and provide a list of recommendations on how to improve it. Use the evaluateBestPractice tool to evaluate the best practice.
+
+Prompt: ${promptText}
+Here are the recommendations:
+`,
+                model: model!,
+                tools: [evaluateBestPracticeTool],
+                output: {
+                    schema: OptimizePromptRecommendationsOutputSchema,
+                },
+                plugins,
+                safetySettings: [
+                  {
+                    category: 'HARM_CATEGORY_HATE_SPEECH',
+                    threshold: 'BLOCK_ONLY_HIGH',
+                  },
+                  {
+                    category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
+                    threshold: 'BLOCK_NONE',
+                  },
+                  {
+                    category: 'HARM_CATEGORY_HARASSMENT',
+                    threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+                  },
+                  {
+                    category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
+                    threshold: 'BLOCK_LOW_AND_ABOVE',
+                  },
+                ],
+            });
+            return output;
         } catch (error: any) {
             if (error.status === 429 && keysToTry.indexOf(key) < keysToTry.length - 1) {
-                console.log(`API key ${key?.slice(0,8)}... failed. Trying next key.`);
+                console.log(`API key ${key?.slice(0,8)}... failed with rate limit. Trying next key.`);
                 continue;
             }
             throw error;

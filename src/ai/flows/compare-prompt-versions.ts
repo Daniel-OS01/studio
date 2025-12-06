@@ -30,22 +30,6 @@ export async function comparePromptVersions(input: ComparePromptVersionsInput): 
   return comparePromptVersionsFlow(input);
 }
 
-const comparePromptVersionsPrompt = ai.definePrompt({
-  name: 'comparePromptVersionsPrompt',
-  input: {schema: z.object({promptVersion1: z.string(), promptVersion2: z.string()})},
-  output: {schema: ComparePromptVersionsOutputSchema},
-  prompt: `You are an AI prompt expert. Compare the two prompt versions provided below and highlight the key differences and their potential impact on the AI's response.
-
-Prompt Version 1:
-{{promptVersion1}}
-
-Prompt Version 2:
-{{promptVersion2}}
-
-Analysis:
-`,  
-});
-
 const comparePromptVersionsFlow = ai.defineFlow(
   {
     name: 'comparePromptVersionsFlow',
@@ -58,11 +42,26 @@ const comparePromptVersionsFlow = ai.defineFlow(
     for (const key of keysToTry) {
       try {
         const plugins = key ? [googleAI({apiKey: key})] : [];
-        const {output} = await comparePromptVersionsPrompt({promptVersion1, promptVersion2}, {plugins});
-        return output!;
+        const {output} = await ai.generate({
+          prompt: `You are an AI prompt expert. Compare the two prompt versions provided below and highlight the key differences and their potential impact on the AI's response.
+
+Prompt Version 1:
+${promptVersion1}
+
+Prompt Version 2:
+${promptVersion2}
+
+Analysis:
+`,
+          output: {
+            schema: ComparePromptVersionsOutputSchema,
+          },
+          plugins,
+        });
+        return output;
       } catch (error: any) {
         if (error.status === 429 && keysToTry.indexOf(key) < keysToTry.length - 1) {
-          console.log(`API key ${key?.slice(0, 8)}... failed. Trying next key.`);
+          console.log(`API key ${key?.slice(0, 8)}... failed with rate limit. Trying next key.`);
           continue;
         }
         throw error;

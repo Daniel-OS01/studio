@@ -34,13 +34,6 @@ export async function evaluatePromptQuality(
   return evaluatePromptQualityFlow(input);
 }
 
-const prompt = ai.definePrompt({
-  name: 'evaluatePromptQualityPrompt',
-  input: {schema: z.object({ prompt: z.string() })},
-  output: {schema: EvaluatePromptQualityOutputSchema},
-  prompt: `You are an AI prompt evaluator. You will evaluate the quality of a prompt based on clarity, specificity, and potential for bias.\n\nClarity: How easy is the prompt to understand? (0-10)\nSpecificity: How specific is the prompt? (0-10)\nPotential for Bias: How likely is the prompt to produce biased results? (0-10)\n\nProvide a score (0-10) for each of these categories, and provide suggestions for improving the prompt.\n\nPrompt: {{{prompt}}}`,
-});
-
 const evaluatePromptQualityFlow = ai.defineFlow(
   {
     name: 'evaluatePromptQualityFlow',
@@ -54,11 +47,18 @@ const evaluatePromptQualityFlow = ai.defineFlow(
     for (const key of keysToTry) {
       try {
         const plugins = key ? [googleAI({apiKey: key})] : [];
-        const {output} = await prompt({prompt: promptText}, {plugins, model});
-        return output!;
+        const {output} = await ai.generate({
+          prompt: `You are an AI prompt evaluator. You will evaluate the quality of a prompt based on clarity, specificity, and potential for bias.\n\nClarity: How easy is the prompt to understand? (0-10)\nSpecificity: How specific is the prompt? (0-10)\nPotential for Bias: How likely is the prompt to produce biased results? (0-10)\n\nProvide a score (0-10) for each of these categories, and provide suggestions for improving the prompt.\n\nPrompt: ${promptText}`,
+          model: model!,
+          output: {
+            schema: EvaluatePromptQualityOutputSchema,
+          },
+          plugins,
+        });
+        return output;
       } catch (error: any) {
         if (error.status === 429 && keysToTry.indexOf(key) < keysToTry.length - 1) {
-          console.log(`API key ${key?.slice(0, 8)}... failed. Trying next key.`);
+          console.log(`API key ${key?.slice(0, 8)}... failed with rate limit. Trying next key.`);
           continue;
         }
         throw error;
