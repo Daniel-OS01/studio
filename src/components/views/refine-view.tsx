@@ -11,11 +11,13 @@ import {
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import type { View } from '@/lib/types';
-import { ChevronRight, Wand } from 'lucide-react';
-import React, { useState } from 'react';
+import type { AppSettings, Prompt, View } from '@/lib/types';
+import { ChevronRight, Loader2, Save, Wand } from 'lucide-react';
+import React, { useState, useTransition } from 'react';
 import { RefinementWizard } from '../shared/refinement-wizard';
 import { PromptStatusBar } from '../shared/prompt-status-bar';
+import { useLocalStorage } from '@/hooks/use-local-storage';
+import { generatePromptName } from '@/ai/flows/generate-prompt-name';
 
 interface RefineViewProps {
   setView: (view: View) => void;
@@ -26,15 +28,81 @@ export function RefineView({ setView }: RefineViewProps) {
     'Write a short story about a dragon.'
   );
   const { toast } = useToast();
+  const [isSaving, startSaving] = useTransition();
+
+  const [settings] = useLocalStorage<AppSettings>('prompt-forge-settings', {
+    apiKeys: [],
+    activeApiKeyIndex: 0,
+    models: {
+      analysis: 'gemini-2.5-flash',
+      metrics: 'gemini-2.5-flash',
+      recommendations: 'gemini-2.5-flash',
+    },
+  });
+
+  const [, setLocalPrompts] = useLocalStorage<Prompt[]>(
+    'prompt-forge-library',
+    []
+  );
+
+  const getApiKeys = () => {
+    const activeKey = settings.apiKeys?.[settings.activeApiKeyIndex]?.key ?? '';
+    const otherKeys =
+      settings.apiKeys
+        ?.filter((_, i) => i !== settings.activeApiKeyIndex)
+        .map((k) => k.key) ?? [];
+    return [activeKey, ...otherKeys].filter(Boolean);
+  };
 
   const handleGoToStudio = () => {
-    // This is a placeholder to demonstrate moving the prompt.
-    // In a real app, you might use a shared state management solution.
     toast({
       title: 'Sent to Studio',
       description: 'Your refined prompt is ready in the Studio view. (Demo)',
     });
     setView('studio');
+  };
+
+  const handleSaveToLibrary = () => {
+    if (!promptText.trim()) {
+      toast({
+        title: 'Prompt is empty',
+        description: 'Please enter a prompt to save.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    startSaving(async () => {
+      try {
+        const { name } = await generatePromptName({
+          prompt: promptText,
+          apiKeys: getApiKeys(),
+          modelName: settings.models.analysis,
+        });
+
+        const newPrompt: Prompt = {
+          id: Date.now().toString(),
+          name: name,
+          text: promptText,
+          createdAt: new Date().toISOString(),
+        };
+
+        setLocalPrompts((prev) => [newPrompt, ...prev]);
+
+        toast({
+          title: 'Prompt Saved!',
+          description: `"${name}" has been added to your local library.`,
+        });
+      } catch (error) {
+        toast({
+          title: 'Failed to Save',
+          description:
+            'Could not automatically name and save the prompt. Please try again.',
+          variant: 'destructive',
+        });
+        console.error(error);
+      }
+    });
   };
 
   return (
@@ -60,7 +128,7 @@ export function RefineView({ setView }: RefineViewProps) {
               progress here.
             </CardDescription>
           </CardHeader>
-          <CardContent className="flex flex-col gap-2 flex-1">
+          <CardContent className="flex flex-col gap-4 flex-1">
             <Label htmlFor="prompt-text">Prompt</Label>
             <div className="grid gap-2 flex-1">
               <Textarea
@@ -72,8 +140,16 @@ export function RefineView({ setView }: RefineViewProps) {
               />
             </div>
           </CardContent>
-          <div className="flex items-center gap-4 p-4 border-t">
+          <div className="flex items-center gap-4 p-4 border-t mt-auto">
             <PromptStatusBar />
+            <Button
+              onClick={handleSaveToLibrary}
+              variant="outline"
+              disabled={isSaving || !promptText}
+            >
+              {isSaving ? <Loader2 className="animate-spin" /> : <Save />}
+              Save to Library
+            </Button>
             <Button
               onClick={handleGoToStudio}
               variant="outline"
@@ -87,7 +163,7 @@ export function RefineView({ setView }: RefineViewProps) {
 
 
         {/* Right Panel: Wizard Steps */}
-        <Card className="flex flex-col overflow-hidden">
+        <Card className="flex flex-col overflow-y-auto">
           <CardHeader>
             <CardTitle>Refinement Wizard</CardTitle>
             <CardDescription>

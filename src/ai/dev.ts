@@ -8,3 +8,4 @@ import '@/ai/flows/compare-prompt-versions.ts';
 import '@/ai/flows/evaluate-prompt-quality.ts';
 import '@/ai/flows/refine-prompt.ts';
 import '@/ai/flows/generate-refinement-options.ts';
+import '@/ai/flows/generate-prompt-name.ts';
