@@ -252,14 +252,15 @@ export function RefinementWizard({
                 </Button>
                 <h3 className="font-semibold text-lg">{step.data.title}</h3>
                 <p className="text-sm text-muted-foreground">{step.data.explanation}</p>
-                <div className="flex flex-wrap gap-2">
+                <div className="space-y-2">
                     {step.data.options.map(option => (
                         <Button 
                             key={option.title}
                             variant="outline"
+                            className="w-full justify-start text-left h-auto"
                             onClick={() => handleOptionSelect(option.title)}
                         >
-                            {option.icon && <span>{option.icon}</span>}
+                            {option.icon && <span className="text-lg mr-2">{option.icon}</span>}
                             {option.title}
                         </Button>
                     ))}

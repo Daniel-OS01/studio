@@ -7,9 +7,8 @@
  * - GenerateRefinementOptionsOutput - The return type for the function.
  */
 
-import { genkit } from 'genkit';
 import { googleAI } from '@genkit-ai/google-genai';
-import { z } from 'zod';
+import { genkit, z } from 'genkit';
 
 const GenerateRefinementOptionsInputSchema = z.object({
   prompt: z.string().describe('The initial prompt to refine.'),
@@ -91,17 +90,17 @@ const generateRefinementOptionsFlow = async ({
         
         Generate a clear question ('title') and a brief 'explanation' for this step.
         Then, you MUST provide a list of 3 to 6 diverse, high-level refinement goals ('options') related to the topic.
-        Each option should have a short 'title'.
+        Each option should have a short 'title' and a relevant 'icon' (emoji).
         
         Example for topic "Primary Goal":
         {
           "title": "What is the primary goal of your prompt?",
           "explanation": "Understanding the main objective helps tailor the suggestions.",
           "options": [
-            { "title": "Increase output specificity" },
-            { "title": "Enhance creative variation" },
-            { "title": "Improve structural adherence" },
-            { "title": "Balance detail and conciseness" }
+            { "title": "Increase output specificity", "icon": "🎯" },
+            { "title": "Enhance creative variation", "icon": "🎨" },
+            { "title": "Improve structural adherence", "icon": "🏗️" },
+            { "title": "Balance detail and conciseness", "icon": "⚖️" }
           ]
         }
         
