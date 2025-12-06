@@ -15,6 +15,7 @@ import type { View } from '@/lib/types';
 import { ChevronRight, Wand } from 'lucide-react';
 import React, { useState } from 'react';
 import { RefinementWizard } from '../shared/refinement-wizard';
+import { PromptStatusBar } from '../shared/prompt-status-bar';
 
 interface RefineViewProps {
   setView: (view: View) => void;
@@ -51,37 +52,40 @@ export function RefineView({ setView }: RefineViewProps) {
 
       <main className="flex-1 grid md:grid-cols-2 gap-4 p-4 overflow-hidden">
         {/* Left Panel: Prompt Input & Display */}
-        <Card className="flex flex-col">
-          <CardHeader>
-            <CardTitle>Your Prompt</CardTitle>
-            <CardDescription>
-              Enter your initial prompt below to start the wizard, or see your
-              progress here.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-4 flex-1">
-            <Label htmlFor="prompt-text">Prompt</Label>
-            <div className="grid gap-2 flex-1">
-              <Textarea
-                id="prompt-text"
-                placeholder="e.g., Write a story about a dragon."
-                className="h-full resize-none"
-                value={promptText}
-                onChange={(e) => setPromptText(e.target.value)}
-              />
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <Button
-                onClick={handleGoToStudio}
-                variant="outline"
-                className="ml-auto"
-                disabled={!promptText}
-              >
-                Use in Studio <ChevronRight />
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+        <div className="flex flex-col gap-4">
+          <Card className="flex flex-col flex-1">
+            <CardHeader>
+              <CardTitle>Your Prompt</CardTitle>
+              <CardDescription>
+                Enter your initial prompt below to start the wizard, or see your
+                progress here.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-4 flex-1">
+              <Label htmlFor="prompt-text">Prompt</Label>
+              <div className="grid gap-2 flex-1">
+                <Textarea
+                  id="prompt-text"
+                  placeholder="e.g., Write a story about a dragon."
+                  className="h-full resize-none"
+                  value={promptText}
+                  onChange={(e) => setPromptText(e.target.value)}
+                />
+              </div>
+            </CardContent>
+          </Card>
+          <div className="flex items-center justify-between gap-4 p-2 rounded-md bg-muted/50 border">
+            <PromptStatusBar />
+            <Button
+              onClick={handleGoToStudio}
+              variant="outline"
+              disabled={!promptText}
+            >
+              Use in Studio <ChevronRight />
+            </Button>
+          </div>
+        </div>
+
 
         {/* Right Panel: Wizard Steps */}
         <Card className="flex flex-col overflow-hidden">

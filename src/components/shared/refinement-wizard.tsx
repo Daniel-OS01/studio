@@ -288,19 +288,21 @@ export function RefinementWizard({
     switch (step.type) {
       case 'idle':
         return (
-          <div className="flex flex-col items-center justify-center h-full text-center">
-            <h3 className="font-semibold text-lg">Start the Wizard</h3>
-            <p className="text-muted-foreground max-w-sm mb-4">
-              Enter a prompt on the left and click below to begin the guided
-              refinement process.
-            </p>
-            <Button
-              onClick={startWizard}
-              disabled={isGenerating || !initialPrompt.trim()}
-            >
-              <Sparkles />
-              Start Wizard
-            </Button>
+          <div className="flex flex-col items-center justify-center h-full text-center p-4">
+            <div className="flex flex-col items-center justify-center h-full text-center border-2 border-dashed rounded-lg p-8 w-full">
+              <h3 className="font-semibold text-lg">Start the Wizard</h3>
+              <p className="text-muted-foreground max-w-sm mb-4">
+                Enter a prompt on the left and click below to begin the guided
+                refinement process.
+              </p>
+              <Button
+                onClick={startWizard}
+                disabled={isGenerating || !initialPrompt.trim()}
+              >
+                <Sparkles />
+                Start Wizard
+              </Button>
+            </div>
           </div>
         );
 
