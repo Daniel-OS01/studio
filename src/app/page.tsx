@@ -21,9 +21,12 @@ import { StudioView } from "@/components/views/studio-view"
 import { Logo } from "@/components/icons"
 import type { View } from "@/lib/types"
 import { RefineView } from "@/components/views/refine-view"
+import { useIsMobile } from "@/hooks/use-mobile"
+import { MobileHeader } from "@/components/shared/mobile-header"
 
 export default function Home() {
   const [activeView, setActiveView] = useState<View>("refine")
+  const isMobile = useIsMobile()
 
   const renderView = () => {
     switch (activeView) {
@@ -111,7 +114,10 @@ export default function Home() {
           </SidebarMenu>
         </SidebarFooter>
       </Sidebar>
-      <SidebarInset>{renderView()}</SidebarInset>
+      <SidebarInset>
+        {isMobile && <MobileHeader />}
+        {renderView()}
+      </SidebarInset>
     </SidebarProvider>
   )
 }
