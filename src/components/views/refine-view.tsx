@@ -107,15 +107,17 @@ export function RefineView({ setView }: RefineViewProps) {
 
   return (
     <div className="flex flex-col h-screen bg-background">
-      <header className="p-4 border-b">
-        <h1 className="text-2xl font-headline font-bold text-foreground flex items-center gap-2">
-          <Wand />
-          Prompt Refinement Wizard
-        </h1>
-        <p className="text-muted-foreground">
-          Iteratively improve your prompt through a guided, multi-level
-          process.
-        </p>
+      <header className="p-4 border-b flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-headline font-bold text-foreground flex items-center gap-2">
+            <Wand />
+            Prompt Refinement Wizard
+          </h1>
+          <p className="text-muted-foreground">
+            Iteratively improve your prompt through a guided, multi-level
+            process.
+          </p>
+        </div>
       </header>
 
       <main className="flex-1 grid md:grid-cols-2 gap-4 p-4 overflow-y-auto">
@@ -165,10 +167,14 @@ export function RefineView({ setView }: RefineViewProps) {
         {/* Right Panel: Wizard Steps */}
         <Card className="flex flex-col overflow-y-auto">
           <CardHeader>
-            <CardTitle>Refinement Wizard</CardTitle>
-            <CardDescription>
-              Follow the steps to improve your prompt.
-            </CardDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>Refinement Wizard</CardTitle>
+                <CardDescription>
+                  Follow the steps to improve your prompt.
+                </CardDescription>
+              </div>
+            </div>
           </CardHeader>
           <CardContent className="flex-1 flex flex-col overflow-y-auto">
             <RefinementWizard
