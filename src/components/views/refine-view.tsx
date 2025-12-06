@@ -109,13 +109,13 @@ export function RefineView({ setView }: RefineViewProps) {
 
   return (
     <div className="flex flex-col h-screen bg-background">
-      <header className="p-4 border-b flex items-center justify-between">
+      <header className="p-4 border-b flex items-center justify-between shrink-0">
         <div>
-          <h1 className="text-2xl font-headline font-bold text-foreground flex items-center gap-2">
+          <h1 className="text-xl md:text-2xl font-headline font-bold text-foreground flex items-center gap-2">
             <Wand />
             Prompt Refinement Wizard
           </h1>
-          <p className="text-muted-foreground">
+          <p className="text-muted-foreground text-sm md:text-base">
             Iteratively improve your prompt through a guided, multi-level
             process.
           </p>
@@ -133,7 +133,7 @@ export function RefineView({ setView }: RefineViewProps) {
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-4 flex-1">
-            <Label htmlFor="prompt-text">Prompt</Label>
+            <Label htmlFor="prompt-text" className="sr-only">Prompt</Label>
             <div className="grid gap-2 flex-1">
               <Textarea
                 id="prompt-text"
@@ -144,21 +144,23 @@ export function RefineView({ setView }: RefineViewProps) {
               />
             </div>
           </CardContent>
-          <div className="flex items-center gap-4 p-4 border-t mt-auto">
+          <div className="flex flex-wrap items-center gap-4 p-4 border-t mt-auto">
             <PromptStatusBar />
+            <div className="flex-grow" />
             <Button
               onClick={handleSaveToLibrary}
               variant="outline"
+              size="sm"
               disabled={isSaving || !promptText}
             >
               {isSaving ? <Loader2 className="animate-spin" /> : <Save />}
-              Save to Library
+              Save
             </Button>
             <Button
               onClick={handleGoToStudio}
               variant="outline"
+              size="sm"
               disabled={!promptText}
-              className="ml-auto"
             >
               Use in Studio <ChevronRight />
             </Button>

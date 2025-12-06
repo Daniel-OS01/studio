@@ -138,8 +138,8 @@ function SettingsViewContent() {
     })
   }
 
-  const isCustomModel = (modelName: string) =>
-    modelName !== "" && !availableModels.includes(modelName)
+  const isCustomModel = (modelName?: string) =>
+    modelName !== undefined && modelName !== "" && !availableModels.includes(modelName)
 
   const currentKey = (localSettings.apiKeys || [])[localSettings.activeApiKeyIndex];
 
@@ -192,16 +192,16 @@ function SettingsViewContent() {
               </Label>
             ))}
           </RadioGroup>
-          <div className="flex items-end gap-2 pt-4 flex-wrap md:flex-nowrap">
-            <div className="grid gap-1.5 flex-1 min-w-[150px]">
+          <div className="flex flex-col sm:flex-row items-end gap-2 pt-4">
+            <div className="grid gap-1.5 flex-1 w-full">
               <Label htmlFor="new-key-name">Key Name</Label>
               <Input id="new-key-name" placeholder="e.g., Personal Key" value={newKeyName} onChange={(e) => setNewKeyName(e.target.value)} />
             </div>
-            <div className="grid gap-1.5 flex-1 min-w-[150px]">
+            <div className="grid gap-1.5 flex-1 w-full">
               <Label htmlFor="new-key-value">Key Value</Label>
               <Input id="new-key-value" type="password" placeholder="Enter Google API Key" value={newKeyValue} onChange={(e) => setNewKeyValue(e.target.value)}/>
             </div>
-            <Button onClick={handleAddNewKey}><Plus /> Add Key</Button>
+            <Button onClick={handleAddNewKey} className="w-full sm:w-auto"><Plus /> Add Key</Button>
           </div>
         </CardContent>
       </Card>
@@ -237,7 +237,7 @@ function SettingsViewContent() {
             provide a custom model name.
           </CardDescription>
         </CardHeader>
-        <CardContent className="grid sm:grid-cols-2 lg:grid-cols-2 gap-6">
+        <CardContent className="grid sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
           <div className="grid gap-4">
             <div className="grid gap-2">
               <Label htmlFor="model-analysis">Analysis Model</Label>
