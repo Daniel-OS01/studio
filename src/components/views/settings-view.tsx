@@ -25,9 +25,10 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { useLocalStorage } from "@/hooks/use-local-storage"
 import { useToast } from "@/hooks/use-toast"
 import type { AppSettings, ApiKey } from "@/lib/types"
-import { Key, Plus, Save, Trash2, Info } from "lucide-react"
+import { Key, Plus, Save, Trash2, Info, Smartphone } from "lucide-react"
 import React, { useEffect, useState } from "react"
 import { format } from "date-fns"
+import { Switch } from "../ui/switch"
 
 const availableModels = [
   "gemini-1.5-flash-latest",
@@ -56,6 +57,7 @@ function SettingsViewContent() {
 
   const [localSettings, setLocalSettings] = useState<AppSettings>(() => ({
     ...savedSettings,
+    mobileView: savedSettings.mobileView ?? false,
     models: {
       analysis: savedSettings.models?.analysis ?? 'gemini-1.5-flash-latest',
       metrics: savedSettings.models?.metrics ?? 'gemini-1.5-flash-latest',
@@ -70,6 +72,7 @@ function SettingsViewContent() {
   useEffect(() => {
     setLocalSettings({
       ...savedSettings,
+      mobileView: savedSettings.mobileView ?? false,
       models: {
         analysis: savedSettings.models?.analysis ?? 'gemini-1.5-flash-latest',
         metrics: savedSettings.models?.metrics ?? 'gemini-1.5-flash-latest',
@@ -141,6 +144,26 @@ function SettingsViewContent() {
 
   return (
     <main className="flex-1 flex flex-col p-4 gap-4 overflow-y-auto">
+      <Card>
+        <CardHeader>
+          <CardTitle>Appearance</CardTitle>
+          <CardDescription>
+            Customize the look and feel of the application.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+            <div className="flex items-center space-x-2">
+                <Switch
+                    id="mobile-view"
+                    checked={localSettings.mobileView}
+                    onCheckedChange={(checked) => setLocalSettings(prev => ({...prev, mobileView: checked}))}
+                />
+                <Label htmlFor="mobile-view" className="flex items-center gap-2 cursor-pointer">
+                    <Smartphone /> Force Mobile View
+                </Label>
+            </div>
+        </CardContent>
+      </Card>
       <Card>
         <CardHeader>
           <CardTitle>API Key Management</CardTitle>

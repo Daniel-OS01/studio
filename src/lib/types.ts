@@ -44,6 +44,7 @@ export type AppSettings = {
   apiKeys: ApiKey[]
   activeApiKeyIndex: number
   lastModified?: string
+  mobileView?: boolean
   models: {
     analysis: string
     metrics: string
