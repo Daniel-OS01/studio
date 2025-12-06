@@ -8,9 +8,8 @@
  */
 
 import { ai } from '@/ai/genkit';
-import { genkit } from 'genkit';
+import { genkit, z } from 'genkit';
 import { googleAI } from '@genkit-ai/google-genai';
-import { z } from 'zod';
 
 const RefinePromptInputSchema = z.object({
   prompt: z.string().describe('The prompt to refine.'),
