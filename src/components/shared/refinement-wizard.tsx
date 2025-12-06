@@ -338,7 +338,7 @@ export function RefinementWizard({
                             <Button
                                 key={oIndex}
                                 variant={selectedOptions[qIndex] === option.title ? 'default' : 'outline'}
-                                className="w-full justify-start text-left h-auto py-2"
+                                className="w-full text-left h-auto py-2 whitespace-normal"
                                 onClick={() => handleOptionSelect(qIndex, option.title)}
                             >
                                 {option.icon && <span className="text-xl mr-3">{option.icon}</span>}
