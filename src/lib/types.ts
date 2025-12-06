@@ -5,7 +5,7 @@ import type { ComparePromptVersionsOutput } from "@/ai/flows/compare-prompt-vers
 import type { EvaluatePromptQualityOutput } from "@/ai/flows/evaluate-prompt-quality"
 import type { OptimizePromptRecommendationsOutput } from "@/ai/flows/optimize-prompt-recommendations"
 import type { RefinePromptOutput } from "@/ai/flows/refine-prompt"
-import type { GenerateRefinementLevelsOutput } from "@/ai/flows/generate-refinement-levels"
+import type { GenerateRefinementOptionsOutput } from "@/ai/flows/generate-refinement-options"
 
 
 export type Prompt = {
@@ -27,7 +27,7 @@ export type PromptComparison = ComparePromptVersionsOutput
 
 export type RefinementStep = RefinePromptOutput
 
-export type MultiLevelRefinement = GenerateRefinementLevelsOutput;
+export type RefinementOptions = GenerateRefinementOptionsOutput;
 
 
 export type View = "studio" | "local-library" | "community-library" | "settings" | "refine";

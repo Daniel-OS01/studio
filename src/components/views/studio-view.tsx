@@ -61,7 +61,7 @@ import {
   ThumbsUp,
 } from 'lucide-react';
 import React, { useState, useTransition } from 'react';
-import { RefinePromptWizard } from './refine-prompt-wizard';
+import { RefinePromptWizard } from '../shared/refinement-wizard';
 
 function HistoryTabContent({
   setPromptText,
