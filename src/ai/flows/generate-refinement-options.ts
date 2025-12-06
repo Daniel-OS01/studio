@@ -49,7 +49,7 @@ const GenerateRefinementOptionsOutputSchema = z.object({
     .array(RefinementGoalSchema)
     .min(3)
     .max(5)
-    .describe('A list of 3-5 high-level refinement goals.'),
+    .describe('A list of 3 to 5 high-level refinement goals.'),
 });
 export type GenerateRefinementOptionsOutput = z.infer<
   typeof GenerateRefinementOptionsOutputSchema

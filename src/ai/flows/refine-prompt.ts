@@ -48,7 +48,7 @@ const RefinePromptOutputSchema = z.object({
     .min(3)
     .max(5)
     .describe(
-      'A list of 3-5 interactive options for the user to choose from.'
+      'A list of 3 to 5 interactive options for the user to choose from.'
     ),
 });
 
@@ -85,12 +85,12 @@ const refinePromptFlow = async ({
         
         The user's high-level refinement goals are: "${refinementGoal}"
         
-        Based on this, generate ONE final, clear question and a list of 3 to 5 diverse, actionable options to apply to the prompt.
+        Based on this, you MUST generate ONE final, clear question and a list of 3 to 5 diverse, actionable options to apply to the prompt.
         
         For this step, you MUST provide:
         1.  A clear 'title' for the question (e.g., "How can we make the subject more specific?").
         2.  A brief 'explanation' of why this question is important for achieving the user's goal.
-        3.  A list of 3-5 diverse 'options'.
+        3.  A list of 3 to 5 diverse 'options'.
         
         Each individual 'option' MUST include:
         - A 'title' (for a button).
