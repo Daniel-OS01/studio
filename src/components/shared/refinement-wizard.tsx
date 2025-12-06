@@ -4,7 +4,7 @@ import { generateRefinementOptions } from '@/ai/flows/generate-refinement-option
 import { refinePrompt } from '@/ai/flows/refine-prompt';
 import { useLocalStorage } from '@/hooks/use-local-storage';
 import { useToast } from '@/hooks/use-toast';
-import type { AppSettings, RefinementOptions, RefinePromptOutput } from '@/lib/types';
+import type { AppSettings, GenerateRefinementOptionsOutput, RefinePromptOutput } from '@/lib/types';
 import {
   AlertTriangle,
   ArrowLeft,
@@ -31,7 +31,7 @@ type WizardStep =
   | { type: 'idle' }
   | { type: 'loading'; message: string }
   | { type: 'error'; message: string }
-  | { type: 'options'; data: RefinementOptions; topic: string }
+  | { type: 'options'; data: GenerateRefinementOptionsOutput; topic: string }
   | { type: 'suggestions'; data: RefinePromptOutput }
   | { type: 'finished' };
 
@@ -246,26 +246,38 @@ export function RefinementWizard({
 
       case 'options':
         return (
-            <div className="space-y-4">
-                 <Button onClick={handleBack} variant="ghost" size="sm" className="mb-2">
-                    <ArrowLeft className="mr-2 h-4 w-4" /> Back
-                </Button>
-                <h3 className="font-semibold text-lg">{step.data.title}</h3>
-                <p className="text-sm text-muted-foreground">{step.data.explanation}</p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    {step.data.options.map(option => (
-                        <Button 
-                            key={option.title}
-                            variant="outline"
-                            className="w-full justify-start text-left h-auto py-2"
-                            onClick={() => handleOptionSelect(option.title)}
+          <div className="space-y-4">
+            <Button onClick={handleBack} variant="ghost" size="sm" className="mb-2">
+              <ArrowLeft className="mr-2 h-4 w-4" /> Back
+            </Button>
+            <Accordion type="single" collapsible className="w-full" defaultValue="item-0">
+              {step.data.map((question, qIndex) => (
+                <AccordionItem value={`item-${qIndex}`} key={qIndex}>
+                  <AccordionTrigger>
+                    <div className="text-left">
+                      <h4 className="font-semibold">{question.title}</h4>
+                      <p className="text-sm text-muted-foreground font-normal">{question.explanation}</p>
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {question.options.map((option) => (
+                        <Button
+                          key={option.title}
+                          variant="outline"
+                          className="w-full justify-start text-left h-auto py-2"
+                          onClick={() => handleOptionSelect(option.title)}
                         >
-                            {option.icon && <span className="text-xl mr-3">{option.icon}</span>}
-                            <span>{option.title}</span>
+                          {option.icon && <span className="text-xl mr-3">{option.icon}</span>}
+                          <span>{option.title}</span>
                         </Button>
-                    ))}
-                </div>
-            </div>
+                      ))}
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+              ))}
+            </Accordion>
+          </div>
         );
 
     case 'suggestions':
@@ -332,5 +344,3 @@ export function RefinementWizard({
 
   return <>{renderStep()}</>;
 }
-
-    

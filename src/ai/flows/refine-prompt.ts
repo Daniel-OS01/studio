@@ -55,8 +55,8 @@ const RefinementQuestionSchema = z.object({
 const RefinePromptOutputSchema = z
   .array(RefinementQuestionSchema)
   .min(3)
-  .max(5)
-  .describe('An array of 3 to 5 refinement questions.');
+  .max(6)
+  .describe('An array of 3 to 6 refinement questions.');
 
 export type RefinePromptOutput = z.infer<typeof RefinePromptOutputSchema>;
 
@@ -93,7 +93,7 @@ const refinePromptFlow = async ({
         
         The user's high-level refinement goals are: "${refinementGoal}"
         
-        Based on this, you MUST generate a list of 3 to 5 different questions. Each question must be from a different perspective (e.g., one about tone, one about format, one about specificity, etc.).
+        Based on this, you MUST generate a list of 3 to 6 different questions. Each question must be from a different perspective (e.g., one about tone, one about format, one about specificity, etc.).
 
         For each question in the list, you MUST provide:
         1. A clear 'title' for the question (e.g., "How can we make the subject more specific?").
@@ -116,7 +116,7 @@ const refinePromptFlow = async ({
           ]
         }
         
-        Now, generate the full array of 3 to 5 questions based on the user's prompt and goals.`,
+        Now, generate the full array of 3 to 6 questions based on the user's prompt and goals.`,
         output: {
           schema: RefinePromptOutputSchema,
         },
@@ -141,5 +141,3 @@ const refinePromptFlow = async ({
   }
   throw new Error('All API keys failed due to rate limiting or other errors.');
 };
-
-    

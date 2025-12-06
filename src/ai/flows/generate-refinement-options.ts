@@ -40,7 +40,7 @@ const RefinementGoalSchema = z.object({
   icon: z.string().optional().describe('An optional emoji or icon identifier.'),
 });
 
-const GenerateRefinementOptionsOutputSchema = z.object({
+const RefinementQuestionSchema = z.object({
   title: z
     .string()
     .describe('The question for this wizard step (e.g., "What is the primary goal?").'),
@@ -51,6 +51,13 @@ const GenerateRefinementOptionsOutputSchema = z.object({
     .max(6)
     .describe('A list of 3 to 6 high-level refinement goals.'),
 });
+
+const GenerateRefinementOptionsOutputSchema = z
+  .array(RefinementQuestionSchema)
+  .min(2)
+  .max(5)
+  .describe('An array of 2 to 5 refinement questions.');
+
 export type GenerateRefinementOptionsOutput = z.infer<
   typeof GenerateRefinementOptionsOutputSchema
 >;
@@ -80,7 +87,7 @@ const generateRefinementOptionsFlow = async ({
 
       const { output } = await localAi.generate({
         model: model,
-        prompt: `You are an expert prompt engineer building an interactive wizard. Your task is to generate a single step for the wizard.
+        prompt: `You are an expert prompt engineer building an interactive wizard. Your task is to generate a set of questions for a wizard step.
         The user's prompt is: "${prompt}"
         The topic for this step is: "${topic}"
         ${
@@ -89,23 +96,28 @@ const generateRefinementOptionsFlow = async ({
             : ''
         }
         
-        Generate a clear question ('title') and a brief 'explanation' for this step.
-        Then, you MUST provide a list of 3 to 6 diverse, high-level refinement goals ('options') related to the topic.
-        Each option should have a short 'title' and a relevant 'icon' (emoji).
+        You MUST generate a list of 2 to 5 different questions related to the topic.
+        For each question in the list, you MUST provide:
+        1. A clear 'title' for the question (e.g., "What is the primary goal of your prompt?").
+        2. A brief 'explanation' of why this question is important.
+        3. A list of 3 to 6 diverse, high-level refinement goals ('options') for that question.
         
-        Example for topic "Primary Goal":
+        Each individual 'option' within a question MUST include:
+        - A short 'title' (e.g., "Increase output specificity").
+        - A relevant 'icon' (emoji).
+        
+        Example for a single question object in the final array:
         {
           "title": "What is the primary goal of your prompt?",
           "explanation": "Understanding the main objective helps tailor the suggestions.",
           "options": [
             { "title": "Increase output specificity", "icon": "🎯" },
             { "title": "Enhance creative variation", "icon": "🎨" },
-            { "title": "Improve structural adherence", "icon": "🏗️" },
-            { "title": "Balance detail and conciseness", "icon": "⚖️" }
+            { "title": "Improve structural adherence", "icon": "🏗️" }
           ]
         }
         
-        Generate the step for the topic: "${topic}".`,
+        Generate the full array of 2 to 5 questions for the topic: "${topic}".`,
         output: {
           schema: GenerateRefinementOptionsOutputSchema,
         },
@@ -130,5 +142,3 @@ const generateRefinementOptionsFlow = async ({
   }
   throw new Error('All API keys failed due to rate limiting or other errors.');
 };
-
-    
