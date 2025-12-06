@@ -7,6 +7,7 @@
  * - RefinePromptOutput - The return type for the refinePrompt function.
  */
 
+import { ai } from '@/ai/genkit';
 import { genkit } from 'genkit';
 import { googleAI } from '@genkit-ai/google-genai';
 import { z } from 'zod';
@@ -22,6 +23,7 @@ const RefinePromptInputSchema = z.object({
     .array(z.string())
     .optional()
     .describe('An optional list of Google API keys to try.'),
+  modelName: z.string().optional().describe('The model name to use.'),
 });
 export type RefinePromptInput = z.infer<typeof RefinePromptInputSchema>;
 
@@ -74,9 +76,9 @@ const refinePromptFlow = async ({
   prompt,
   refinementGoal,
   apiKeys,
+  modelName,
 }: RefinePromptInput) => {
   const keysToTry = apiKeys?.length ? apiKeys : [process.env.GEMINI_API_KEY];
-  const model = googleAI.model('gemini-1.5-flash-latest');
 
   for (const key of keysToTry) {
     if (!key) continue;
@@ -86,7 +88,7 @@ const refinePromptFlow = async ({
       });
 
       const { output } = await localAi.generate({
-        model: model,
+        model: modelName ? googleAI.model(modelName) : ai.model,
         prompt: `You are an expert prompt engineer. Your task is to generate a set of diverse, actionable questions to refine a user's prompt based on their stated goals.
 
         The user's current prompt is:

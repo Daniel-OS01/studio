@@ -8,6 +8,7 @@
  * - ComparePromptVersionsOutput - The return type for the comparePromptVersions function.
  */
 
+import {ai} from '@/ai/genkit';
 import {genkit} from 'genkit';
 import {googleAI} from '@genkit-ai/google-genai';
 import {z} from 'genkit';
@@ -52,7 +53,7 @@ ${promptVersion2}
 
 Analysis:
 `,
-          model: googleAI.model('gemini-1.5-flash-latest'),
+          model: ai.model,
           output: {
             schema: ComparePromptVersionsOutputSchema,
           },

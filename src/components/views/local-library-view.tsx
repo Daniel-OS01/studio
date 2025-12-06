@@ -20,9 +20,11 @@ interface CompactPromptCardProps {
   prompt: Prompt
   isSelected: boolean
   onClick: () => void
+  onCopy: () => void;
+  onEdit: () => void;
 }
 
-function CompactPromptCard({ prompt, isSelected, onClick }: CompactPromptCardProps) {
+function CompactPromptCard({ prompt, isSelected, onClick, onCopy, onEdit }: CompactPromptCardProps) {
   return (
     <div
       className={cn(
@@ -31,6 +33,14 @@ function CompactPromptCard({ prompt, isSelected, onClick }: CompactPromptCardPro
       )}
       onClick={onClick}
     >
+      <div className="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); onEdit(); }}>
+              <Edit className="h-4 w-4" />
+          </Button>
+          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); onCopy(); }}>
+              <Copy className="h-4 w-4" />
+          </Button>
+      </div>
       <div className="flex justify-between items-start mb-1">
         <h3 className="font-semibold text-sm truncate pr-4">{prompt.name}</h3>
         <p className="text-xs text-muted-foreground shrink-0">
@@ -62,9 +72,9 @@ function LocalLibraryViewContent({ setView }: { setView: (view: View) => void })
     apiKeys: [],
     activeApiKeyIndex: 0,
     models: {
-      analysis: 'gemini-2.5-flash',
-      metrics: 'gemini-2.5-flash',
-      recommendations: 'gemini-2.5-flash',
+      analysis: 'gemini-1.5-flash-latest',
+      metrics: 'gemini-1.5-flash-latest',
+      recommendations: 'gemini-1.5-flash-latest',
     },
   });
 
@@ -212,6 +222,11 @@ function LocalLibraryViewContent({ setView }: { setView: (view: View) => void })
                         setSelectedPromptId(prompt.id);
                         setIsEditing(false);
                       }}
+                      onEdit={() => {
+                        setSelectedPromptId(prompt.id);
+                        setIsEditing(true);
+                      }}
+                      onCopy={() => handleCopyPrompt(prompt.text)}
                   />
                   ))
               ) : (

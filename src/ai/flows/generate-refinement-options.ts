@@ -7,6 +7,7 @@
  * - GenerateRefinementOptionsOutput - The return type for the function.
  */
 
+import { ai } from '@/ai/genkit';
 import { googleAI } from '@genkit-ai/google-genai';
 import { genkit, z } from 'genkit';
 
@@ -74,7 +75,6 @@ const generateRefinementOptionsFlow = async ({
   apiKeys,
 }: GenerateRefinementOptionsInput) => {
   const keysToTry = apiKeys?.length ? apiKeys : [process.env.GEMINI_API_KEY];
-  const model = googleAI.model('gemini-1.5-flash-latest');
 
   for (const key of keysToTry) {
     if (!key) continue;
@@ -84,7 +84,7 @@ const generateRefinementOptionsFlow = async ({
       });
 
       const { output } = await localAi.generate({
-        model: model,
+        model: ai.model,
         prompt: `You are an expert prompt engineer building an interactive wizard. Your task is to generate a set of questions for a wizard step.
         The user's prompt is: "${prompt}"
         The topic for this step is: "${topic}"

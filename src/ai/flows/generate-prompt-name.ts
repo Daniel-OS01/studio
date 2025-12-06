@@ -8,6 +8,7 @@
  * - GeneratePromptNameOutput - The return type for the generatePromptName function.
  */
 
+import { ai } from '@/ai/genkit';
 import { googleAI } from '@genkit-ai/google-genai';
 import { genkit, z } from 'genkit';
 
@@ -17,6 +18,7 @@ const GeneratePromptNameInputSchema = z.object({
     .array(z.string())
     .optional()
     .describe('An optional list of Google API keys to try.'),
+  modelName: z.string().optional().describe('The model name to use.'),
 });
 export type GeneratePromptNameInput = z.infer<
   typeof GeneratePromptNameInputSchema
@@ -42,9 +44,9 @@ export async function generatePromptName(
 const generatePromptNameFlow = async ({
   prompt,
   apiKeys,
+  modelName,
 }: GeneratePromptNameInput) => {
   const keysToTry = apiKeys?.length ? apiKeys : [process.env.GEMINI_API_KEY];
-  const model = googleAI.model('gemini-1.5-flash-latest');
 
   for (const key of keysToTry) {
     if (!key) continue;
@@ -54,7 +56,7 @@ const generatePromptNameFlow = async ({
       });
 
       const { output } = await localAi.generate({
-        model: model,
+        model: modelName ? googleAI.model(modelName) : ai.model,
         prompt: `You are an expert in summarizing content. Your task is to generate a short, descriptive name (4-5 words maximum) for the following prompt text. The name should capture the essence of the prompt's purpose.
 
 Prompt: "${prompt}"

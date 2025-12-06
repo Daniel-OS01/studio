@@ -8,6 +8,7 @@
  * - EvaluatePromptQualityOutput - The return type for the evaluatePromptQuality function.
  */
 
+import {ai} from '@/ai/genkit';
 import {genkit} from 'genkit';
 import {googleAI} from '@genkit-ai/google-genai';
 import {z} from 'genkit';
@@ -35,7 +36,6 @@ export async function evaluatePromptQuality(
 
 const evaluatePromptQualityFlow = async ({prompt: promptText, apiKeys}: EvaluatePromptQualityInput) => {
     const keysToTry = apiKeys?.length ? apiKeys : [process.env.GEMINI_API_KEY];
-    const model = googleAI.model('gemini-1.5-flash-latest');
     
     for (const key of keysToTry) {
       if (!key) continue;
@@ -47,7 +47,7 @@ const evaluatePromptQualityFlow = async ({prompt: promptText, apiKeys}: Evaluate
 
         const {output} = await localAi.generate({
           prompt: `You are an AI prompt evaluator. You will evaluate the quality of a prompt based on clarity, specificity, and potential for bias.\n\nClarity: How easy is the prompt to understand? (0-10)\nSpecificity: How specific is the prompt? (0-10)\nPotential for Bias: How likely is the prompt to produce biased results? (0-10)\n\nProvide a score (0-10) for each of these categories, and provide suggestions for improving the prompt.\n\nPrompt: ${promptText}`,
-          model: model,
+          model: ai.model,
           output: {
             schema: EvaluatePromptQualityOutputSchema,
           },

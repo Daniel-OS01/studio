@@ -8,6 +8,7 @@
  * - AnalyzeAndSuggestImprovementsOutput - The return type for the analyzeAndSuggestImprovements function.
  */
 
+import {ai} from '@/ai/genkit';
 import {genkit} from 'genkit';
 import {googleAI} from '@genkit-ai/google-genai';
 import {z} from 'genkit';
@@ -36,7 +37,6 @@ export async function analyzeAndSuggestImprovements(
 
 const analyzeAndSuggestImprovementsFlow = async ({prompt: promptText, apiKeys}: AnalyzeAndSuggestImprovementsInput) => {
     const keysToTry = apiKeys?.length ? apiKeys : [process.env.GEMINI_API_KEY];
-    const model = googleAI.model('gemini-1.5-flash-latest');
     
     for (const key of keysToTry) {
       if (!key) continue;
@@ -54,7 +54,7 @@ Prompt: ${promptText}
 First, provide a detailed analysis of the prompt, including potential weaknesses.
 Second, provide specific suggestions for improving the prompt to get better results from an AI model.
 Be as detailed as possible.`,
-          model: model,
+          model: ai.model,
           output: {
             schema: AnalyzeAndSuggestImprovementsOutputSchema,
           },

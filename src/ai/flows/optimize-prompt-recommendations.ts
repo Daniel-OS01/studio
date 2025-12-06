@@ -8,6 +8,7 @@
  * - OptimizePromptRecommendationsOutput - The return type for the optimizePromptRecommendations function.
  */
 
+import {ai} from '@/ai/genkit';
 import {genkit} from 'genkit';
 import {googleAI} from '@genkit-ai/google-genai';
 import {z} from 'genkit';
@@ -36,7 +37,6 @@ export async function optimizePromptRecommendations(
 
 const optimizePromptRecommendationsFlow = async ({promptText, apiKeys}: OptimizePromptRecommendationsInput) => {
     const keysToTry = apiKeys?.length ? apiKeys : [process.env.GEMINI_API_KEY];
-    const model = googleAI.model('gemini-1.5-flash-latest');
 
     for (const key of keysToTry) {
         if (!key) continue;
@@ -67,7 +67,7 @@ const optimizePromptRecommendationsFlow = async ({promptText, apiKeys}: Optimize
 Prompt: ${promptText}
 Here are the recommendations:
 `,
-                model: model,
+                model: ai.model,
                 tools: [evaluateBestPracticeTool],
                 output: {
                     schema: OptimizePromptRecommendationsOutputSchema,
