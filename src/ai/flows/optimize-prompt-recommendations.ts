@@ -11,7 +11,6 @@
 import {genkit} from 'genkit';
 import {googleAI} from '@genkit-ai/google-genai';
 import {z} from 'genkit';
-import { ai as defaultAi } from '@/ai/genkit';
 
 const OptimizePromptRecommendationsInputSchema = z.object({
   promptText: z.string().describe('The prompt text to be optimized.'),
@@ -35,20 +34,6 @@ export async function optimizePromptRecommendations(
   return optimizePromptRecommendationsFlow(input);
 }
 
-const evaluateBestPracticeTool = defaultAi.defineTool({
-  name: 'evaluateBestPractice',
-  description: 'Evaluates if a prompt follows the prompt engineering best practices.',
-  inputSchema: z.object({
-    prompt: z.string().describe('The prompt to evaluate.'),
-  }),
-  outputSchema: z.string(),
-},
-async (input) => {
-    // Implement your custom logic here to evaluate the prompt against best practices
-    // and return a string indicating the evaluation result.  For example:
-    return `The prompt seems ${input.prompt.length < 20 ? 'too short' : 'reasonable in length'}, the description is clear.`;
-  }
-);
 
 const optimizePromptRecommendationsFlow = async ({promptText, apiKeys, modelName}: OptimizePromptRecommendationsInput) => {
     const keysToTry = apiKeys?.length ? apiKeys : [undefined];
@@ -60,6 +45,21 @@ const optimizePromptRecommendationsFlow = async ({promptText, apiKeys, modelName
             const localAi = genkit({
                 plugins: key ? [googleAI({apiKey: key})] : [googleAI()],
             });
+
+            const evaluateBestPracticeTool = localAi.defineTool({
+              name: 'evaluateBestPractice',
+              description: 'Evaluates if a prompt follows the prompt engineering best practices.',
+              inputSchema: z.object({
+                prompt: z.string().describe('The prompt to evaluate.'),
+              }),
+              outputSchema: z.string(),
+            },
+            async (input) => {
+                // Implement your custom logic here to evaluate the prompt against best practices
+                // and return a string indicating the evaluation result.  For example:
+                return `The prompt seems ${input.prompt.length < 20 ? 'too short' : 'reasonable in length'}, the description is clear.`;
+              }
+            );
 
             const {output} = await localAi.generate({
                 prompt: `You are an AI prompt optimizer. Your job is to take a prompt and provide a list of recommendations on how to improve it. Use the evaluateBestPractice tool to evaluate the best practice.
