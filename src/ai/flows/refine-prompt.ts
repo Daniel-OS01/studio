@@ -28,6 +28,7 @@ export type RefinePromptInput = z.infer<typeof RefinePromptInputSchema>;
 
 const RefinementOptionSchema = z.object({
   title: z.string().describe('The short text for the suggestion button.'),
+  icon: z.string().optional().describe('A relevant emoji for the option.'),
   text: z
     .string()
     .describe('The text to be appended to the prompt if this option is chosen.'),
@@ -102,6 +103,7 @@ const refinePromptFlow = async ({
         
         Each individual 'option' within a question MUST include:
         - A short 'title' (for a button).
+        - A relevant emoji 'icon'.
         - The 'text' that should be appended to the original prompt if chosen.
         - An 'example' showing how the suggestion improves a sample prompt, similar to pretty-prompt.com.
         
@@ -110,9 +112,9 @@ const refinePromptFlow = async ({
           "title": "What kind of dragon is it?",
           "explanation": "Defining the dragon's nature will shape the story's conflict and character.",
           "options": [
-            { "title": "A wise, ancient dragon", "text": "The story should feature a wise, ancient dragon.", "example": "For a story about a library, adding '...a wise, ancient dragon' as the librarian adds depth." },
-            { "title": "A young, reckless dragon", "text": "The story should feature a young, reckless dragon.", "example": "For a story about a race, adding '...featuring a young, reckless dragon' raises the stakes." },
-            { "title": "A metallic, clockwork dragon", "text": "The story should feature a metallic, clockwork dragon.", "example": "For a sci-fi story, adding '...a metallic, clockwork dragon' sets a steampunk tone." }
+            { "title": "A wise, ancient dragon", "icon": "🐉", "text": "The story should feature a wise, ancient dragon.", "example": "For a story about a library, adding '...a wise, ancient dragon' as the librarian adds depth." },
+            { "title": "A young, reckless dragon", "icon": "🔥", "text": "The story should feature a young, reckless dragon.", "example": "For a story about a race, adding '...featuring a young, reckless dragon' raises the stakes." },
+            { "title": "A metallic, clockwork dragon", "icon": "⚙️", "text": "The story should feature a metallic, clockwork dragon.", "example": "For a sci-fi story, adding '...a metallic, clockwork dragon' sets a steampunk tone." }
           ]
         }
         

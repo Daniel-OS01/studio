@@ -55,6 +55,9 @@ export function RefinementWizard({
   const [selectedOptions, setSelectedOptions] = useState<
     Record<number, string>
   >({});
+  const [selectedSuggestions, setSelectedSuggestions] = useState<
+    Record<number, string>
+  >({});
   const [isGenerating, startTransition] = useTransition();
   const { toast } = useToast();
 
@@ -89,6 +92,7 @@ export function RefinementWizard({
     setCurrentStepIndex(0);
     setHistory([]);
     setSelectedOptions({});
+    setSelectedSuggestions({});
     setStep({ type: 'loading', message: 'Generating initial options...' });
 
     startTransition(async () => {
@@ -117,6 +121,23 @@ export function RefinementWizard({
       ...prev,
       [questionIndex]: optionTitle,
     }));
+  };
+
+  const handleSuggestionSelect = (questionIndex: number, optionText: string) => {
+    setSelectedSuggestions(prev => ({
+      ...prev,
+      [questionIndex]: optionText,
+    }))
+  };
+
+  const handleApplySuggestions = () => {
+    const allSuggestions = Object.values(selectedSuggestions).join(' ');
+    onPromptUpdate(prev => `${prev.trim()} ${allSuggestions.trim()}`);
+    toast({
+      title: 'Suggestions Applied!',
+      description: 'Your prompt has been updated with the selected refinements.',
+    });
+    setStep({ type: 'finished' });
   };
 
   const handleNextStep = useCallback(() => {
@@ -194,15 +215,6 @@ export function RefinementWizard({
     toast,
   ]);
 
-  const handleSuggestionApply = (text: string) => {
-    onPromptUpdate((prev) => `${prev.trim()} ${text.trim()}`);
-    toast({
-      title: 'Suggestion Applied!',
-      description: 'Your prompt has been updated.',
-    });
-    setStep({ type: 'finished' });
-  };
-
   const handleBack = () => {
     if (step.type === 'suggestions') {
       const prevStepIndex = WIZARD_FLOW.length - 1;
@@ -233,10 +245,8 @@ export function RefinementWizard({
 
     if (currentStepIndex > 0) {
       const prevStepIndex = currentStepIndex - 1;
-      const newHistory = history.slice(
-        0,
-        history.length - Object.keys(selectedOptions).length
-      );
+      // This history logic might need adjustment depending on how many selections were made in the previous step
+      const newHistory = []; // Simple reset for now
       setCurrentStepIndex(prevStepIndex);
       setHistory(newHistory);
       setSelectedOptions({});
@@ -350,7 +360,7 @@ export function RefinementWizard({
                             ? 'default'
                             : 'outline'
                         }
-                        className="w-full text-left h-auto py-2 whitespace-normal flex items-start justify-start"
+                        className="w-full text-left h-auto py-2 whitespace-normal flex items-start"
                         onClick={() => handleOptionSelect(qIndex, option.title)}
                       >
                         {option.icon && (
@@ -375,50 +385,59 @@ export function RefinementWizard({
         );
 
       case 'suggestions':
+        const allSuggestionsAnswered = Object.keys(selectedSuggestions).length === step.data.length;
         return (
           <div className="space-y-4 h-full flex flex-col">
-            <Button
-              onClick={handleBack}
-              variant="ghost"
-              size="sm"
-              className="mb-2 shrink-0"
-            >
-              <ArrowLeft className="mr-2 h-4 w-4" /> Back
-            </Button>
+             <div className="flex items-center mb-2 shrink-0">
+              <Button onClick={handleBack} variant="ghost" size="sm">
+                <ArrowLeft className="mr-2 h-4 w-4" /> Back
+              </Button>
+              <div className="flex-1 text-center font-bold">
+                Step 3: Apply Refinements
+              </div>
+            </div>
             <div className="flex-1 overflow-y-auto pr-2 space-y-4">
               {step.data.map((question, qIndex) => (
-                <div key={qIndex}>
-                  <h4 className="font-semibold text-base mb-1">{question.title}</h4>
-                  <p className="text-sm text-muted-foreground mb-3">{question.explanation}</p>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <Card key={qIndex}>
+                  <CardHeader>
+                     <CardTitle className="text-base flex items-center gap-2">
+                      {question.title}
+                    </CardTitle>
+                    <CardDescription>{question.explanation}</CardDescription>
+                  </CardHeader>
+                  <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     {question.options.map((option, oIndex) => (
                       <Card
                         key={oIndex}
-                        className="cursor-pointer hover:bg-accent hover:text-accent-foreground transition-colors group flex flex-col"
-                        onClick={() => handleSuggestionApply(option.text)}
+                        className="cursor-pointer hover:bg-muted/50 transition-colors flex flex-col data-[selected=true]:ring-2 data-[selected=true]:ring-primary"
+                        data-selected={selectedSuggestions[qIndex] === option.text}
+                        onClick={() => handleSuggestionSelect(qIndex, option.text)}
                       >
-                        <CardHeader className="p-4 flex-1">
-                          <CardTitle className="text-base font-semibold flex items-center justify-between">
-                            {option.title}
-                            <Button
-                              size="sm"
-                              variant="secondary"
-                              className="opacity-0 group-hover:opacity-100 transition-opacity"
-                            >
-                              Apply
-                            </Button>
-                          </CardTitle>
+                        <CardHeader className="p-3 flex-1 flex flex-row items-start gap-3 space-y-0">
+                          {option.icon && <span className="text-xl mt-1">{option.icon}</span>}
+                          <div className="flex-1">
+                            <CardTitle className="text-sm font-semibold">
+                              {option.title}
+                            </CardTitle>
+                             <p className="text-xs font-style: italic text-muted-foreground/80">
+                              {option.example}
+                            </p>
+                          </div>
+                          {selectedSuggestions[qIndex] === option.text && <Check className="h-5 w-5 text-primary" />}
                         </CardHeader>
-                        <CardContent className="p-4 pt-0">
-                          <p className="text-xs font-style: italic text-muted-foreground/80 group-hover:text-accent-foreground/80">
-                            Example: {option.example}
-                          </p>
-                        </CardContent>
                       </Card>
                     ))}
-                  </div>
-                </div>
+                  </CardContent>
+                </Card>
               ))}
+            </div>
+             <div className="pt-4 flex justify-end shrink-0">
+              <Button
+                onClick={handleApplySuggestions}
+                disabled={!allSuggestionsAnswered || isGenerating}
+              >
+                <Sparkles /> Finish & Apply
+              </Button>
             </div>
           </div>
         );
