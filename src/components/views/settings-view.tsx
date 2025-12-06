@@ -31,8 +31,9 @@ const availableModels = [
   "gemini-pro",
   "gemini-1.5-pro-latest",
   "gemini-1.5-flash-latest",
-  "custom",
 ]
+
+const customModelValue = "custom"
 
 type ModelConfig = "analysis" | "metrics" | "recommendations"
 
@@ -57,25 +58,25 @@ function SettingsViewContent() {
   }, [savedSettings])
 
   const handleModelChange = (modelType: ModelConfig, value: string) => {
-    const isCustom = value === "custom"
+    const isCustom = value === customModelValue
     setLocalSettings((prev) => ({
       ...prev,
       models: {
         ...prev.models,
-        [modelType]: isCustom ? prev.models[modelType] : value,
+        [modelType]: isCustom ? "" : value,
       },
     }))
   }
-  
+
   const handleCustomModelChange = (modelType: ModelConfig, value: string) => {
     setLocalSettings((prev) => ({
-        ...prev,
-        models: {
-            ...prev.models,
-            [modelType]: value,
-        },
-    }));
-  };
+      ...prev,
+      models: {
+        ...prev.models,
+        [modelType]: value,
+      },
+    }))
+  }
 
   const handleApiKeyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setLocalSettings((prev) => ({
@@ -92,7 +93,8 @@ function SettingsViewContent() {
     })
   }
 
-  const isCustom = (modelName: string) => !availableModels.slice(0,-1).includes(modelName);
+  const isCustomModel = (modelName: string) =>
+    modelName !== "" && !availableModels.includes(modelName)
 
   return (
     <main className="flex-1 flex flex-col p-4 gap-4 overflow-hidden">
@@ -133,7 +135,11 @@ function SettingsViewContent() {
             <div className="grid gap-2">
               <Label htmlFor="model-analysis">Analysis Model</Label>
               <Select
-                value={isCustom(localSettings.models.analysis) ? 'custom' : localSettings.models.analysis}
+                value={
+                  localSettings.models.analysis && !availableModels.includes(localSettings.models.analysis)
+                    ? customModelValue
+                    : localSettings.models.analysis
+                }
                 onValueChange={(value) => handleModelChange("analysis", value)}
               >
                 <SelectTrigger id="model-analysis">
@@ -142,25 +148,32 @@ function SettingsViewContent() {
                 <SelectContent>
                   {availableModels.map((model) => (
                     <SelectItem key={model} value={model}>
-                      {model === "custom" ? "Custom..." : model}
+                      {model}
                     </SelectItem>
                   ))}
+                  <SelectItem value={customModelValue}>Custom...</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-            {isCustom(localSettings.models.analysis) && (
+            {localSettings.models.analysis === "" || isCustomModel(localSettings.models.analysis) ? (
               <Input
                 placeholder="Enter custom model name"
                 value={localSettings.models.analysis}
-                onChange={(e) => handleCustomModelChange("analysis", e.target.value)}
+                onChange={(e) =>
+                  handleCustomModelChange("analysis", e.target.value)
+                }
               />
-            )}
+            ) : null}
           </div>
           <div className="grid gap-4">
             <div className="grid gap-2">
               <Label htmlFor="model-metrics">Metrics Model</Label>
               <Select
-                value={isCustom(localSettings.models.metrics) ? 'custom' : localSettings.models.metrics}
+                value={
+                  localSettings.models.metrics && !availableModels.includes(localSettings.models.metrics)
+                    ? customModelValue
+                    : localSettings.models.metrics
+                }
                 onValueChange={(value) => handleModelChange("metrics", value)}
               >
                 <SelectTrigger id="model-metrics">
@@ -169,19 +182,22 @@ function SettingsViewContent() {
                 <SelectContent>
                   {availableModels.map((model) => (
                     <SelectItem key={model} value={model}>
-                      {model === "custom" ? "Custom..." : model}
+                      {model}
                     </SelectItem>
                   ))}
+                  <SelectItem value={customModelValue}>Custom...</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-            {isCustom(localSettings.models.metrics) && (
+            {localSettings.models.metrics === "" || isCustomModel(localSettings.models.metrics) ? (
               <Input
                 placeholder="Enter custom model name"
                 value={localSettings.models.metrics}
-                onChange={(e) => handleCustomModelChange("metrics", e.target.value)}
+                onChange={(e) =>
+                  handleCustomModelChange("metrics", e.target.value)
+                }
               />
-            )}
+            ) : null}
           </div>
           <div className="grid gap-4">
             <div className="grid gap-2">
@@ -189,7 +205,11 @@ function SettingsViewContent() {
                 Recommendations Model
               </Label>
               <Select
-                value={isCustom(localSettings.models.recommendations) ? 'custom' : localSettings.models.recommendations}
+                value={
+                  localSettings.models.recommendations && !availableModels.includes(localSettings.models.recommendations)
+                    ? customModelValue
+                    : localSettings.models.recommendations
+                }
                 onValueChange={(value) =>
                   handleModelChange("recommendations", value)
                 }
@@ -200,19 +220,22 @@ function SettingsViewContent() {
                 <SelectContent>
                   {availableModels.map((model) => (
                     <SelectItem key={model} value={model}>
-                      {model === "custom" ? "Custom..." : model}
+                      {model}
                     </SelectItem>
                   ))}
+                  <SelectItem value={customModelValue}>Custom...</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-            {isCustom(localSettings.models.recommendations) && (
+            {localSettings.models.recommendations === "" || isCustomModel(localSettings.models.recommendations) ? (
               <Input
                 placeholder="Enter custom model name"
                 value={localSettings.models.recommendations}
-                onChange={(e) => handleCustomModelChange("recommendations", e.target.value)}
+                onChange={(e) =>
+                  handleCustomModelChange("recommendations", e.target.value)
+                }
               />
-            )}
+            ) : null}
           </div>
         </CardContent>
         <CardFooter>
