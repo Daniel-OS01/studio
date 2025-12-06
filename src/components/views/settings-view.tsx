@@ -46,6 +46,7 @@ function SettingsViewContent() {
     {
       apiKeys: [],
       activeApiKeyIndex: 0,
+      mobileView: false,
       models: {
         analysis: 'gemini-1.5-flash-latest',
         metrics: 'gemini-1.5-flash-latest',
@@ -191,12 +192,12 @@ function SettingsViewContent() {
               </Label>
             ))}
           </RadioGroup>
-          <div className="flex items-end gap-2 pt-4">
-            <div className="grid gap-1.5 flex-1">
+          <div className="flex items-end gap-2 pt-4 flex-wrap md:flex-nowrap">
+            <div className="grid gap-1.5 flex-1 min-w-[150px]">
               <Label htmlFor="new-key-name">Key Name</Label>
               <Input id="new-key-name" placeholder="e.g., Personal Key" value={newKeyName} onChange={(e) => setNewKeyName(e.target.value)} />
             </div>
-            <div className="grid gap-1.5 flex-1">
+            <div className="grid gap-1.5 flex-1 min-w-[150px]">
               <Label htmlFor="new-key-value">Key Value</Label>
               <Input id="new-key-value" type="password" placeholder="Enter Google API Key" value={newKeyValue} onChange={(e) => setNewKeyValue(e.target.value)}/>
             </div>
@@ -410,3 +411,5 @@ export function SettingsView() {
     </div>
   )
 }
+
+    

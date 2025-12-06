@@ -94,7 +94,7 @@ export function CommunityLibraryView({
       </header>
       <main className="grid md:grid-cols-[340px_1fr] flex-1 overflow-hidden">
         {/* Left Column */}
-        <div className="flex flex-col gap-4 p-4 border-r bg-muted/20">
+        <div className="flex flex-col gap-4 p-4 border-r bg-muted/20 md:border-r">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
@@ -158,3 +158,5 @@ export function CommunityLibraryView({
     </div>
   )
 }
+
+    
