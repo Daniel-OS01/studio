@@ -2,11 +2,19 @@
 
 import {
   analyzeAndSuggestImprovements,
+  AnalyzeAndSuggestImprovementsInput,
 } from "@/ai/flows/analyze-and-suggest-improvements"
-import { comparePromptVersions } from "@/ai/flows/compare-prompt-versions"
-import { evaluatePromptQuality } from "@/ai/flows/evaluate-prompt-quality"
+import {
+  comparePromptVersions,
+  ComparePromptVersionsInput,
+} from "@/ai/flows/compare-prompt-versions"
+import {
+  evaluatePromptQuality,
+  EvaluatePromptQualityInput,
+} from "@/ai/flows/evaluate-prompt-quality"
 import {
   optimizePromptRecommendations,
+  OptimizePromptRecommendationsInput,
 } from "@/ai/flows/optimize-prompt-recommendations"
 import { ClientOnly } from "@/components/shared/client-only"
 import { Button } from "@/components/ui/button"
@@ -52,7 +60,7 @@ import {
   Loader2,
   Save,
   Sparkles,
-  TestTube2,
+  TestTubeDiagonal,
   ThumbsUp,
 } from "lucide-react"
 import React, { useState, useTransition } from "react"
@@ -68,12 +76,20 @@ function HistoryTabContent() {
   const [isComparisonDialogOpen, setIsComparisonDialogOpen] = useState(false)
   const [isComparing, startComparing] = useTransition()
   const { toast } = useToast()
-  
+
   // This state is managed in the parent but we need it here for the restore button.
   // This is not ideal, but it's a quick fix for the demo.
   // A better solution would be to lift the state up or use a state manager.
   const [promptText, setPromptText] = useState("")
-
+  const [settings] = useLocalStorage<AppSettings>("prompt-forge-settings", {
+    apiKeys: [],
+    activeApiKeyIndex: 0,
+    models: {
+      analysis: "gemini-2.5-flash",
+      metrics: "gemini-2.5-flash",
+      recommendations: "gemini-2.5-flash",
+    },
+  })
 
   const handleCompare = () => {
     if (selectedHistory.length !== 2) {
@@ -88,9 +104,17 @@ function HistoryTabContent() {
       setComparison(null)
       setIsComparisonDialogOpen(true)
       try {
+        const activeKey =
+          settings.apiKeys?.[settings.activeApiKeyIndex]?.key ?? ""
+        const otherKeys =
+          settings.apiKeys?.filter((_, i) => i !== settings.activeApiKeyIndex) ??
+          []
+        const orderedApiKeys = [activeKey, ...otherKeys.map((k) => k.key)]
+
         const result = await comparePromptVersions({
           promptVersion1: history[selectedHistory[1]].text,
           promptVersion2: history[selectedHistory[0]].text,
+          apiKeys: orderedApiKeys,
         })
         setComparison(result)
       } catch (error) {
@@ -128,7 +152,11 @@ function HistoryTabContent() {
           disabled={isComparing || selectedHistory.length !== 2}
           className="ml-auto"
         >
-          {isComparing ? <Loader2 className="animate-spin" /> : <TestTube2 />}
+          {isComparing ? (
+            <Loader2 className="animate-spin" />
+          ) : (
+            <TestTubeDiagonal />
+          )}
           Compare ({selectedHistory.length})
         </Button>
       </div>
@@ -231,16 +259,22 @@ function HistoryTabContent() {
 export function StudioView() {
   const [promptName, setPromptName] = useState("")
   const [promptText, setPromptText] = useState("")
+  const [apiKey, setApiKey] = useState("")
 
   const [analysis, setAnalysis] = useState<PromptAnalysis | null>(null)
   const [metrics, setMetrics] = useState<QualityMetrics | null>(null)
   const [recommendations, setRecommendations] =
     useState<PromptRecommendations | null>(null)
 
-  const [settings, setSettings] = useLocalStorage<AppSettings>(
-    "prompt-forge-settings",
-    { apiKeys: [], activeApiKeyIndex: 0, models: { analysis: "gemini-2.5-flash", metrics: "gemini-2.5-flash", recommendations: "gemini-2.5-flash" } }
-  )
+  const [settings] = useLocalStorage<AppSettings>("prompt-forge-settings", {
+    apiKeys: [],
+    activeApiKeyIndex: 0,
+    models: {
+      analysis: "gemini-2.5-flash",
+      metrics: "gemini-2.5-flash",
+      recommendations: "gemini-2.5-flash",
+    },
+  })
   const [, setHistory] = useLocalStorage<PromptVersion[]>(
     "prompt-forge-history",
     []
@@ -255,15 +289,6 @@ export function StudioView() {
   const [isRecommending, startRecommending] = useTransition()
 
   const { toast } = useToast()
-
-  const getNextApiKey = () => {
-    if (!settings.apiKeys || settings.apiKeys.length === 0) {
-      return undefined;
-    }
-    const nextIndex = (settings.activeApiKeyIndex + 1) % settings.apiKeys.length;
-    setSettings(prev => ({...prev, activeApiKeyIndex: nextIndex }));
-    return settings.apiKeys[settings.activeApiKeyIndex]?.key;
-  }
 
   const handleSaveToHistory = () => {
     if (!promptText.trim()) return
@@ -290,10 +315,16 @@ export function StudioView() {
     startAnalyzing(async () => {
       setAnalysis(null)
       try {
-        const apiKey = getNextApiKey();
-        const result = await analyzeAndSuggestImprovements({ 
-          prompt: promptText, 
-          apiKey: apiKey,
+        const activeKey =
+          settings.apiKeys?.[settings.activeApiKeyIndex]?.key ?? ""
+        const otherKeys =
+          settings.apiKeys?.filter((_, i) => i !== settings.activeApiKeyIndex) ??
+          []
+        const orderedApiKeys = [activeKey, ...otherKeys.map((k) => k.key)]
+
+        const result = await analyzeAndSuggestImprovements({
+          prompt: promptText,
+          apiKeys: orderedApiKeys,
           modelName: settings.models.analysis,
         })
         setAnalysis(result)
@@ -321,10 +352,18 @@ export function StudioView() {
     startEvaluating(async () => {
       setMetrics(null)
       try {
-        const apiKey = getNextApiKey();
-        const result = await evaluatePromptQuality(
-          { prompt: promptText, apiKey: apiKey, modelName: settings.models.metrics }
-        )
+        const activeKey =
+          settings.apiKeys?.[settings.activeApiKeyIndex]?.key ?? ""
+        const otherKeys =
+          settings.apiKeys?.filter((_, i) => i !== settings.activeApiKeyIndex) ??
+          []
+        const orderedApiKeys = [activeKey, ...otherKeys.map((k) => k.key)]
+
+        const result = await evaluatePromptQuality({
+          prompt: promptText,
+          apiKeys: orderedApiKeys,
+          modelName: settings.models.metrics,
+        })
         setMetrics(result)
         handleSaveToHistory()
       } catch (error) {
@@ -350,10 +389,16 @@ export function StudioView() {
     startRecommending(async () => {
       setRecommendations(null)
       try {
-        const apiKey = getNextApiKey();
+        const activeKey =
+          settings.apiKeys?.[settings.activeApiKeyIndex]?.key ?? ""
+        const otherKeys =
+          settings.apiKeys?.filter((_, i) => i !== settings.activeApiKeyIndex) ??
+          []
+        const orderedApiKeys = [activeKey, ...otherKeys.map((k) => k.key)]
+
         const result = await optimizePromptRecommendations({
           promptText: promptText,
-          apiKey: apiKey,
+          apiKeys: orderedApiKeys,
           modelName: settings.models.recommendations,
         })
         setRecommendations(result)
@@ -420,6 +465,18 @@ export function StudioView() {
                 onChange={(e) => setPromptName(e.target.value)}
               />
             </div>
+            <div className="grid gap-2">
+              <Label htmlFor="api-key">
+                Google API Key (Overrides Default)
+              </Label>
+              <Input
+                id="api-key"
+                placeholder="Enter your Google API key"
+                value={apiKey}
+                onChange={(e) => setApiKey(e.target.value)}
+                type="password"
+              />
+            </div>
             <div className="grid gap-2 flex-1">
               <Label htmlFor="prompt-text">Prompt</Label>
               <Textarea
@@ -432,7 +489,11 @@ export function StudioView() {
             </div>
             <div className="flex flex-wrap gap-2">
               <Button onClick={handleAnalyze} disabled={isAnalyzing}>
-                {isAnalyzing ? <Loader2 className="animate-spin" /> : <Sparkles />}
+                {isAnalyzing ? (
+                  <Loader2 className="animate-spin" />
+                ) : (
+                  <Sparkles />
+                )}
                 Analyze
               </Button>
               <Button
@@ -440,7 +501,11 @@ export function StudioView() {
                 disabled={isEvaluating}
                 variant="secondary"
               >
-                {isEvaluating ? <Loader2 className="animate-spin" /> : <TestTube2 />}
+                {isEvaluating ? (
+                  <Loader2 className="animate-spin" />
+                ) : (
+                  <TestTubeDiagonal />
+                )}
                 Evaluate Quality
               </Button>
               <Button
