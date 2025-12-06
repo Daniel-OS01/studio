@@ -61,9 +61,9 @@ export function RefineView({ setView }: RefineViewProps) {
                 progress here.
               </CardDescription>
             </CardHeader>
-            <CardContent className="flex flex-col gap-4 flex-1">
+            <CardContent className="flex flex-col gap-2 flex-1">
+              <Label htmlFor="prompt-text">Prompt</Label>
               <div className="grid gap-2 flex-1">
-                <Label htmlFor="prompt-text">Prompt</Label>
                 <Textarea
                   id="prompt-text"
                   placeholder="e.g., Write a story about a dragon."
