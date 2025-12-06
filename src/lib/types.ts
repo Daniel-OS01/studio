@@ -4,6 +4,8 @@ import type {
 import type { ComparePromptVersionsOutput } from "@/ai/flows/compare-prompt-versions"
 import type { EvaluatePromptQualityOutput } from "@/ai/flows/evaluate-prompt-quality"
 import type { OptimizePromptRecommendationsOutput } from "@/ai/flows/optimize-prompt-recommendations"
+import type { RefinePromptOutput } from "@/ai/flows/refine-prompt"
+
 
 export type Prompt = {
   id: string
@@ -21,6 +23,8 @@ export type QualityMetrics = EvaluatePromptQualityOutput
 export type PromptAnalysis = AnalyzeAndSuggestImprovementsOutput
 export type PromptRecommendations = OptimizePromptRecommendationsOutput
 export type PromptComparison = ComparePromptVersionsOutput
+
+export type RefinementStep = RefinePromptOutput["refinementSteps"][0]
 
 export type View = "studio" | "local-library" | "community-library" | "settings"
 

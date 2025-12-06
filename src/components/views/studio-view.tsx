@@ -1,47 +1,47 @@
-"use client"
+'use client';
 
 import {
   analyzeAndSuggestImprovements,
   AnalyzeAndSuggestImprovementsInput,
-} from "@/ai/flows/analyze-and-suggest-improvements"
+} from '@/ai/flows/analyze-and-suggest-improvements';
 import {
   comparePromptVersions,
   ComparePromptVersionsInput,
-} from "@/ai/flows/compare-prompt-versions"
+} from '@/ai/flows/compare-prompt-versions';
 import {
   evaluatePromptQuality,
   EvaluatePromptQualityInput,
-} from "@/ai/flows/evaluate-prompt-quality"
+} from '@/ai/flows/evaluate-prompt-quality';
 import {
   optimizePromptRecommendations,
   OptimizePromptRecommendationsInput,
-} from "@/ai/flows/optimize-prompt-recommendations"
-import { ClientOnly } from "@/components/shared/client-only"
-import { ScoreGauge } from "@/components/shared/score-gauge"
-import { Button } from "@/components/ui/button"
+} from '@/ai/flows/optimize-prompt-recommendations';
+import { ClientOnly } from '@/components/shared/client-only';
+import { ScoreGauge } from '@/components/shared/score-gauge';
+import { Button } from '@/components/ui/button';
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card"
-import { Checkbox } from "@/components/ui/checkbox"
+} from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { Separator } from "@/components/ui/separator"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Textarea } from "@/components/ui/textarea"
-import { useLocalStorage } from "@/hooks/use-local-storage"
-import { useToast } from "@/hooks/use-toast"
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Separator } from '@/components/ui/separator';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Textarea } from '@/components/ui/textarea';
+import { useLocalStorage } from '@/hooks/use-local-storage';
+import { useToast } from '@/hooks/use-toast';
 import type {
   AppSettings,
   Prompt,
@@ -50,8 +50,8 @@ import type {
   PromptRecommendations,
   PromptVersion,
   QualityMetrics,
-} from "@/lib/types"
-import { formatDistanceToNow } from "date-fns"
+} from '@/lib/types';
+import { formatDistanceToNow } from 'date-fns';
 import {
   AlertTriangle,
   FileText,
@@ -62,82 +62,84 @@ import {
   Sparkles,
   TestTubeDiagonal,
   ThumbsUp,
-} from "lucide-react"
-import React, { useState, useTransition } from "react"
+  Wand,
+} from 'lucide-react';
+import React, { useState, useTransition } from 'react';
+import { RefinePromptWizard } from './refine-prompt-wizard';
 
-function HistoryTabContent() {
+function HistoryTabContent({
+  setPromptText,
+}: {
+  setPromptText: (text: string) => void;
+}) {
   const [history, setHistory] = useLocalStorage<PromptVersion[]>(
-    "prompt-forge-history",
+    'prompt-forge-history',
     []
-  )
-  const [selectedHistory, setSelectedHistory] = useState<number[]>([])
-  const [comparison, setComparison] = useState<PromptComparison | null>(null)
-  const [isComparisonDialogOpen, setIsComparisonDialogOpen] = useState(false)
-  const [isComparing, startComparing] = useTransition()
-  const { toast } = useToast()
+  );
+  const [selectedHistory, setSelectedHistory] = useState<number[]>([]);
+  const [comparison, setComparison] = useState<PromptComparison | null>(null);
+  const [isComparisonDialogOpen, setIsComparisonDialogOpen] = useState(false);
+  const [isComparing, startComparing] = useTransition();
+  const { toast } = useToast();
 
-  // This state is managed in the parent but we need it here for the restore button.
-  // This is not ideal, but it's a quick fix for the demo.
-  // A better solution would be to lift the state up or use a state manager.
-  const [promptText, setPromptText] = useState("")
-  const [settings] = useLocalStorage<AppSettings>("prompt-forge-settings", {
+  const [settings] = useLocalStorage<AppSettings>('prompt-forge-settings', {
     apiKeys: [],
     activeApiKeyIndex: 0,
     models: {
-      analysis: "gemini-2.5-flash",
-      metrics: "gemini-2.5-flash",
-      recommendations: "gemini-2.5-flash",
+      analysis: 'gemini-2.5-flash',
+      metrics: 'gemini-2.5-flash',
+      recommendations: 'gemini-2.5-flash',
     },
-  })
+  });
 
   const handleCompare = () => {
     if (selectedHistory.length !== 2) {
       toast({
-        title: "Select two versions",
-        description: "Please select exactly two prompt versions to compare.",
-        variant: "destructive",
-      })
-      return
+        title: 'Select two versions',
+        description: 'Please select exactly two prompt versions to compare.',
+        variant: 'destructive',
+      });
+      return;
     }
     startComparing(async () => {
-      setComparison(null)
-      setIsComparisonDialogOpen(true)
+      setComparison(null);
+      setIsComparisonDialogOpen(true);
       try {
         const activeKey =
-          settings.apiKeys?.[settings.activeApiKeyIndex]?.key ?? ""
+          settings.apiKeys?.[settings.activeApiKeyIndex]?.key ?? '';
         const otherKeys =
           settings.apiKeys?.filter((_, i) => i !== settings.activeApiKeyIndex) ??
-          []
-        const orderedApiKeys = [activeKey, ...otherKeys.map((k) => k.key)]
+          [];
+        const orderedApiKeys = [activeKey, ...otherKeys.map((k) => k.key)];
 
         const result = await comparePromptVersions({
           promptVersion1: history[selectedHistory[1]].text,
           promptVersion2: history[selectedHistory[0]].text,
           apiKeys: orderedApiKeys.filter(Boolean),
-        })
-        setComparison(result)
+        });
+        setComparison(result);
       } catch (error) {
         toast({
-          title: "Comparison failed",
-          description: "Could not compare the prompts. Please try again.",
-          variant: "destructive",
-        })
-        console.error(error)
-        setIsComparisonDialogOpen(false)
+          title: 'Comparison failed',
+          description: 'Could not compare the prompts. Please try again.',
+          variant: 'destructive',
+        });
+        console.error(error);
+        setIsComparisonDialogOpen(false);
       }
-    })
-  }
+    });
+  };
 
   const handleHistoryCheckboxChange = (
     checked: boolean | string,
     index: number
   ) => {
     if (checked) {
-      setSelectedHistory([...selectedHistory, index])
+      setSelectedHistory([...selectedHistory, index]);
     } else {
-      setSelectedHistory(selectedHistory.filter((i) => i !== index))
+      setSelectedHistory(selectedHistory.filter((i) => i !== index));
     }
-  }
+  };
 
   return (
     <>
@@ -252,187 +254,192 @@ function HistoryTabContent() {
         </DialogContent>
       </Dialog>
     </>
-  )
+  );
 }
 
 export function StudioView() {
-  const [promptName, setPromptName] = useState("")
-  const [promptText, setPromptText] = useState("")
+  const [promptName, setPromptName] = useState('');
+  const [promptText, setPromptText] = useState('');
 
-  const [analysis, setAnalysis] = useState<PromptAnalysis | null>(null)
-  const [metrics, setMetrics] = useState<QualityMetrics | null>(null)
+  const [analysis, setAnalysis] = useState<PromptAnalysis | null>(null);
+  const [metrics, setMetrics] = useState<QualityMetrics | null>(null);
   const [recommendations, setRecommendations] =
-    useState<PromptRecommendations | null>(null)
+    useState<PromptRecommendations | null>(null);
 
-  const [settings] = useLocalStorage<AppSettings>("prompt-forge-settings", {
+  const [settings] = useLocalStorage<AppSettings>('prompt-forge-settings', {
     apiKeys: [],
     activeApiKeyIndex: 0,
     models: {
-      analysis: "gemini-2.5-flash",
-      metrics: "gemini-2.5-flash",
-      recommendations: "gemini-2.5-flash",
+      analysis: 'gemini-2.5-flash',
+      metrics: 'gemini-2.5-flash',
+      recommendations: 'gemini-2.5-flash',
     },
-  })
+  });
   const [, setHistory] = useLocalStorage<PromptVersion[]>(
-    "prompt-forge-history",
+    'prompt-forge-history',
     []
-  )
+  );
   const [, setLocalPrompts] = useLocalStorage<Prompt[]>(
-    "prompt-forge-library",
+    'prompt-forge-library',
     []
-  )
+  );
 
-  const [isAnalyzing, startAnalyzing] = useTransition()
-  const [isEvaluating, startEvaluating] = useTransition()
-  const [isRecommending, startRecommending] = useTransition()
+  const [isAnalyzing, startAnalyzing] = useTransition();
+  const [isEvaluating, startEvaluating] = useTransition();
+  const [isRecommending, startRecommending] = useTransition();
 
-  const { toast } = useToast()
+  const { toast } = useToast();
 
   const handleSaveToHistory = () => {
-    if (!promptText.trim()) return
+    if (!promptText.trim()) return;
     const newVersion: PromptVersion = {
       text: promptText,
       timestamp: Date.now(),
-    }
-    setHistory((prev) => [newVersion, ...prev])
+    };
+    setHistory((prev) => [newVersion, ...prev]);
     toast({
-      title: "Version saved",
-      description: "Prompt version added to history.",
-    })
-  }
+      title: 'Version saved',
+      description: 'Prompt version added to history.',
+    });
+  };
 
   const handleAnalyze = () => {
     if (!promptText.trim()) {
       toast({
-        title: "Prompt is empty",
-        description: "Please enter a prompt to analyze.",
-        variant: "destructive",
-      })
-      return
+        title: 'Prompt is empty',
+        description: 'Please enter a prompt to analyze.',
+        variant: 'destructive',
+      });
+      return;
     }
     startAnalyzing(async () => {
-      setAnalysis(null)
+      setAnalysis(null);
       try {
         const activeKey =
-          settings.apiKeys?.[settings.activeApiKeyIndex]?.key ?? ""
+          settings.apiKeys?.[settings.activeApiKeyIndex]?.key ?? '';
         const otherKeys =
           settings.apiKeys?.filter((_, i) => i !== settings.activeApiKeyIndex) ??
-          []
-        const orderedApiKeys = [activeKey, ...otherKeys.map((k) => k.key)]
+          [];
+        const orderedApiKeys = [activeKey, ...otherKeys.map((k) => k.key)];
 
         const result = await analyzeAndSuggestImprovements({
           prompt: promptText,
           apiKeys: orderedApiKeys.filter(Boolean),
           modelName: settings.models.analysis,
-        })
-        setAnalysis(result)
-        handleSaveToHistory()
+        });
+        setAnalysis(result);
+        handleSaveToHistory();
       } catch (error) {
         toast({
-          title: "Analysis failed",
-          description: "Could not analyze the prompt. Please try again.",
-          variant: "destructive",
-        })
-        console.error(error)
+          title: 'Analysis failed',
+          description: 'Could not analyze the prompt. Please try again.',
+          variant: 'destructive',
+        });
+        console.error(error);
       }
-    })
-  }
+    });
+  };
 
   const handleEvaluate = () => {
     if (!promptText.trim()) {
       toast({
-        title: "Prompt is empty",
-        description: "Please enter a prompt to evaluate.",
-        variant: "destructive",
-      })
-      return
+        title: 'Prompt is empty',
+        description: 'Please enter a prompt to evaluate.',
+        variant: 'destructive',
+      });
+      return;
     }
     startEvaluating(async () => {
-      setMetrics(null)
+      setMetrics(null);
       try {
         const activeKey =
-          settings.apiKeys?.[settings.activeApiKeyIndex]?.key ?? ""
+          settings.apiKeys?.[settings.activeApiKeyIndex]?.key ?? '';
         const otherKeys =
           settings.apiKeys?.filter((_, i) => i !== settings.activeApiKeyIndex) ??
-          []
-        const orderedApiKeys = [activeKey, ...otherKeys.map((k) => k.key)]
+          [];
+        const orderedApiKeys = [activeKey, ...otherKeys.map((k) => k.key)];
 
         const result = await evaluatePromptQuality({
           prompt: promptText,
           apiKeys: orderedApiKeys.filter(Boolean),
           modelName: settings.models.metrics,
-        })
-        setMetrics(result)
-        handleSaveToHistory()
+        });
+        setMetrics(result);
+        handleSaveToHistory();
       } catch (error) {
         toast({
-          title: "Evaluation failed",
-          description: "Could not evaluate the prompt. Please try again.",
-          variant: "destructive",
-        })
-        console.error(error)
+          title: 'Evaluation failed',
+          description: 'Could not evaluate the prompt. Please try again.',
+          variant: 'destructive',
+        });
+        console.error(error);
       }
-    })
-  }
+    });
+  };
 
   const handleRecommend = () => {
     if (!promptText.trim()) {
       toast({
-        title: "Prompt is empty",
-        description: "Please enter a prompt to get recommendations.",
-        variant: "destructive",
-      })
-      return
+        title: 'Prompt is empty',
+        description: 'Please enter a prompt to get recommendations.',
+        variant: 'destructive',
+      });
+      return;
     }
     startRecommending(async () => {
-      setRecommendations(null)
+      setRecommendations(null);
       try {
         const activeKey =
-          settings.apiKeys?.[settings.activeApiKeyIndex]?.key ?? ""
+          settings.apiKeys?.[settings.activeApiKeyIndex]?.key ?? '';
         const otherKeys =
           settings.apiKeys?.filter((_, i) => i !== settings.activeApiKeyIndex) ??
-          []
-        const orderedApiKeys = [activeKey, ...otherKeys.map((k) => k.key)]
+          [];
+        const orderedApiKeys = [activeKey, ...otherKeys.map((k) => k.key)];
 
         const result = await optimizePromptRecommendations({
           promptText: promptText,
           apiKeys: orderedApiKeys.filter(Boolean),
           modelName: settings.models.recommendations,
-        })
-        setRecommendations(result)
-        handleSaveToHistory()
+        });
+        setRecommendations(result);
+        handleSaveToHistory();
       } catch (error) {
         toast({
-          title: "Failed to get recommendations",
-          description: "Could not get recommendations. Please try again.",
-          variant: "destructive",
-        })
-        console.error(error)
+          title: 'Failed to get recommendations',
+          description: 'Could not get recommendations. Please try again.',
+          variant: 'destructive',
+        });
+        console.error(error);
       }
-    })
-  }
+    });
+  };
 
   const handleSaveToLibrary = () => {
     if (!promptText.trim() || !promptName.trim()) {
       toast({
-        title: "Missing details",
-        description: "Please provide a name and text for the prompt.",
-        variant: "destructive",
-      })
-      return
+        title: 'Missing details',
+        description: 'Please provide a name and text for the prompt.',
+        variant: 'destructive',
+      });
+      return;
     }
     const newPrompt: Prompt = {
       id: Date.now().toString(),
       name: promptName,
       text: promptText,
       createdAt: new Date().toISOString(),
-    }
-    setLocalPrompts((prev) => [newPrompt, ...prev])
+    };
+    setLocalPrompts((prev) => [newPrompt, ...prev]);
     toast({
-      title: "Prompt saved!",
+      title: 'Prompt saved!',
       description: `"${promptName}" has been added to your local library.`,
-    })
-  }
+    });
+  };
+
+  const handleApplySuggestion = (suggestion: string) => {
+    setPromptText((prev) => prev.trim() + ' ' + suggestion.trim());
+  };
+
 
   return (
     <div className="flex flex-col h-screen bg-background">
@@ -522,6 +529,7 @@ export function StudioView() {
         <Tabs defaultValue="analysis" className="flex flex-col">
           <TabsList>
             <TabsTrigger value="analysis">Analysis</TabsTrigger>
+            <TabsTrigger value="refine">Refine</TabsTrigger>
             <TabsTrigger value="metrics">Metrics</TabsTrigger>
             <TabsTrigger value="recommendations">Recommendations</TabsTrigger>
             <TabsTrigger value="history">History</TabsTrigger>
@@ -570,6 +578,20 @@ export function StudioView() {
                     </p>
                   )
                 )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          <TabsContent value="refine" className="flex-1 overflow-auto mt-4">
+            <Card className="h-full">
+              <CardHeader>
+                <CardTitle>Refine Prompt</CardTitle>
+                <CardDescription>
+                  An interactive wizard to help you improve your prompt step-by-step.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <RefinePromptWizard promptText={promptText} onApplySuggestion={handleApplySuggestion} />
               </CardContent>
             </Card>
           </TabsContent>
@@ -665,11 +687,11 @@ export function StudioView() {
             className="flex-1 flex flex-col gap-4 mt-4"
           >
             <ClientOnly>
-              <HistoryTabContent />
+              <HistoryTabContent setPromptText={setPromptText} />
             </ClientOnly>
           </TabsContent>
         </Tabs>
       </main>
     </div>
-  )
+  );
 }
