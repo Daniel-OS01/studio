@@ -54,13 +54,29 @@ function SettingsViewContent() {
     }
   )
 
-  const [localSettings, setLocalSettings] = useState<AppSettings>(savedSettings)
+  const [localSettings, setLocalSettings] = useState<AppSettings>(() => ({
+    ...savedSettings,
+    models: {
+      analysis: savedSettings.models?.analysis ?? 'gemini-1.5-flash-latest',
+      metrics: savedSettings.models?.metrics ?? 'gemini-1.5-flash-latest',
+      recommendations: savedSettings.models?.recommendations ?? 'gemini-1.5-flash-latest',
+      refine: savedSettings.models?.refine ?? 'gemini-1.5-flash-latest',
+    }
+  }));
   const [newKeyName, setNewKeyName] = useState("")
   const [newKeyValue, setNewKeyValue] = useState("")
   const { toast } = useToast()
 
   useEffect(() => {
-    setLocalSettings(savedSettings)
+    setLocalSettings({
+      ...savedSettings,
+      models: {
+        analysis: savedSettings.models?.analysis ?? 'gemini-1.5-flash-latest',
+        metrics: savedSettings.models?.metrics ?? 'gemini-1.5-flash-latest',
+        recommendations: savedSettings.models?.recommendations ?? 'gemini-1.5-flash-latest',
+        refine: savedSettings.models?.refine ?? 'gemini-1.5-flash-latest',
+      }
+    });
   }, [savedSettings])
   
   const handleModelChange = (modelType: ModelConfig, value: string) => {
@@ -225,7 +241,7 @@ function SettingsViewContent() {
             {(localSettings.models.analysis === "" || isCustomModel(localSettings.models.analysis)) && (
               <Input
                 placeholder="Enter custom model name"
-                value={localSettings.models.analysis}
+                value={localSettings.models.analysis || ''}
                 onChange={(e) =>
                   handleCustomModelChange("analysis", e.target.value)
                 }
@@ -259,7 +275,7 @@ function SettingsViewContent() {
             {(localSettings.models.metrics === "" || isCustomModel(localSettings.models.metrics)) && (
               <Input
                 placeholder="Enter custom model name"
-                value={localSettings.models.metrics}
+                value={localSettings.models.metrics || ''}
                 onChange={(e) =>
                   handleCustomModelChange("metrics", e.target.value)
                 }
@@ -297,7 +313,7 @@ function SettingsViewContent() {
             {(localSettings.models.recommendations === "" || isCustomModel(localSettings.models.recommendations)) && (
               <Input
                 placeholder="Enter custom model name"
-                value={localSettings.models.recommendations}
+                value={localSettings.models.recommendations || ''}
                 onChange={(e) =>
                   handleCustomModelChange("recommendations", e.target.value)
                 }
@@ -335,7 +351,7 @@ function SettingsViewContent() {
             {(localSettings.models.refine === "" || isCustomModel(localSettings.models.refine)) && (
               <Input
                 placeholder="Enter custom model name"
-                value={localSettings.models.refine}
+                value={localSettings.models.refine || ''}
                 onChange={(e) =>
                   handleCustomModelChange("refine", e.target.value)
                 }
