@@ -8,6 +8,8 @@ import type {
   AppSettings,
   GenerateRefinementOptionsOutput,
   RefinePromptOutput,
+  PromptVersion,
+  PromptComparison,
 } from '@/lib/types';
 import {
   AlertTriangle,
@@ -16,6 +18,8 @@ import {
   Sparkles,
   Check,
   ChevronRight,
+  History as HistoryIcon,
+  TestTubeDiagonal,
 } from 'lucide-react';
 import React, { useState, useTransition, useCallback, useEffect } from 'react';
 import { Button } from '../ui/button';
@@ -26,6 +30,19 @@ import {
   CardHeader,
   CardTitle,
 } from '../ui/card';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '../ui/dialog';
+import { ScrollArea } from '../ui/scroll-area';
+import { Checkbox } from '../ui/checkbox';
+import { formatDistanceToNow } from 'date-fns';
+import { comparePromptVersions } from '@/ai/flows/compare-prompt-versions';
+import { Separator } from '../ui/separator';
 
 interface RefinementWizardProps {
   initialPrompt: string;
@@ -45,13 +62,206 @@ const WIZARD_FLOW: { topic: string; title: string }[] = [
   { topic: 'Audience', title: 'Step 2: Specify the Audience' },
 ];
 
+function HistoryDialog({
+  history,
+  onRestore,
+  getApiKeys,
+}: {
+  history: PromptVersion[];
+  onRestore: (text: string) => void;
+  getApiKeys: () => string[];
+}) {
+  const [selectedHistory, setSelectedHistory] = useState<number[]>([]);
+  const [comparison, setComparison] = useState<PromptComparison | null>(null);
+  const [isComparisonDialogOpen, setIsComparisonDialogOpen] = useState(false);
+  const [isComparing, startComparing] = useTransition();
+  const { toast } = useToast();
+
+  const handleCompare = () => {
+    if (selectedHistory.length !== 2) {
+      toast({
+        title: 'Select two versions',
+        description: 'Please select exactly two prompt versions to compare.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    startComparing(async () => {
+      setComparison(null);
+      setIsComparisonDialogOpen(true);
+      try {
+        const result = await comparePromptVersions({
+          promptVersion1: history[selectedHistory[1]].text,
+          promptVersion2: history[selectedHistory[0]].text,
+          apiKeys: getApiKeys(),
+        });
+        setComparison(result);
+      } catch (error) {
+        toast({
+          title: 'Comparison failed',
+          description: 'Could not compare the prompts. Please try again.',
+          variant: 'destructive',
+        });
+        console.error(error);
+        setIsComparisonDialogOpen(false);
+      }
+    });
+  };
+
+  const handleHistoryCheckboxChange = (
+    checked: boolean | string,
+    index: number
+  ) => {
+    if (checked) {
+      setSelectedHistory([...selectedHistory, index]);
+    } else {
+      setSelectedHistory(selectedHistory.filter((i) => i !== index));
+    }
+  };
+
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button variant="ghost" size="icon" title="View History">
+          <HistoryIcon />
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Prompt History</DialogTitle>
+          <DialogDescription>
+            Review, compare, and restore previous versions of your prompt from
+            this session.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="flex flex-col gap-4">
+          <div className="flex items-center gap-4">
+            <h3 className="font-semibold text-lg flex items-center gap-2">
+              <HistoryIcon />
+              Prompt Versions
+            </h3>
+            <Button
+              onClick={handleCompare}
+              disabled={isComparing || selectedHistory.length !== 2}
+              className="ml-auto"
+            >
+              {isComparing ? (
+                <Loader2 className="animate-spin" />
+              ) : (
+                <TestTubeDiagonal />
+              )}
+              Compare ({selectedHistory.length})
+            </Button>
+          </div>
+          <ScrollArea className="h-64 border rounded-md p-2">
+            {history.length > 0 ? (
+              <div className="space-y-2">
+                {history.map((version, index) => (
+                  <div
+                    key={version.timestamp}
+                    className="flex items-start gap-4 p-2 rounded-md hover:bg-muted/50"
+                  >
+                    <Checkbox
+                      id={`hist-${index}`}
+                      onCheckedChange={(c) =>
+                        handleHistoryCheckboxChange(c, index)
+                      }
+                      checked={selectedHistory.includes(index)}
+                    />
+                    <div className="grid gap-1.5 leading-none flex-1">
+                      <label
+                        htmlFor={`hist-${index}`}
+                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                      >
+                        <p className="truncate text-sm text-muted-foreground">
+                          {version.text}
+                        </p>
+                      </label>
+                      <p className="text-xs text-muted-foreground">
+                        {formatDistanceToNow(new Date(version.timestamp), {
+                          addSuffix: true,
+                        })}
+                      </p>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="ml-auto"
+                      onClick={() => onRestore(version.text)}
+                    >
+                      Restore
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground text-center p-4">
+                No history yet. Start the wizard to create versions.
+              </p>
+            )}
+          </ScrollArea>
+        </div>
+      </DialogContent>
+      <Dialog
+        open={isComparisonDialogOpen}
+        onOpenChange={setIsComparisonDialogOpen}
+      >
+        <DialogContent className="sm:max-w-[625px]">
+          <DialogHeader>
+            <DialogTitle>Prompt Comparison</DialogTitle>
+            <DialogDescription>
+              AI-powered analysis of the differences between two prompt
+              versions.
+            </DialogDescription>
+          </DialogHeader>
+          {isComparing && !comparison ? (
+            <div className="flex items-center justify-center h-40 gap-2 text-muted-foreground">
+              <Loader2 className="animate-spin" /> Comparing prompts...
+            </div>
+          ) : comparison ? (
+            <div className="space-y-4 text-sm">
+              <div>
+                <h4 className="font-semibold">Version 1 (Older)</h4>
+                <p className="text-muted-foreground p-2 bg-muted rounded-md max-h-20 overflow-auto">
+                  {history[selectedHistory[1]]?.text}
+                </p>
+              </div>
+              <div>
+                <h4 className="font-semibold">Version 2 (Newer)</h4>
+                <p className="text-muted-foreground p-2 bg-muted rounded-md max-h-20 overflow-auto">
+                  {history[selectedHistory[0]]?.text}
+                </p>
+              </div>
+              <Separator />
+              <div>
+                <h4 className="font-semibold flex items-center gap-2">
+                  <Sparkles className="text-accent" /> Analysis
+                </h4>
+                <p className="text-muted-foreground whitespace-pre-wrap">
+                  {comparison.analysis}
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center h-40 gap-2 text-destructive">
+              <AlertTriangle />
+              <p>Could not retrieve comparison.</p>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </Dialog>
+  );
+}
+
 export function RefinementWizard({
   initialPrompt,
   onPromptUpdate,
 }: RefinementWizardProps) {
   const [step, setStep] = useState<WizardStep>({ type: 'idle' });
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
-  const [history, setHistory] = useState<string[]>([]);
+  const [goalHistory, setGoalHistory] = useState<string[]>([]);
+  const [promptHistory, setPromptHistory] = useState<PromptVersion[]>([]);
   const [selectedOptions, setSelectedOptions] = useState<
     Record<number, string>
   >({});
@@ -80,6 +290,13 @@ export function RefinementWizard({
     return [activeKey, ...otherKeys].filter(Boolean);
   }, [settings.apiKeys, settings.activeApiKeyIndex]);
 
+  const addToHistory = (text: string) => {
+    setPromptHistory((prev) => [
+      { text, timestamp: Date.now() },
+      ...prev.filter((p) => p.text !== text), // Avoid duplicates
+    ]);
+  };
+
   const startWizard = useCallback(() => {
     if (!initialPrompt.trim()) {
       toast({
@@ -90,9 +307,10 @@ export function RefinementWizard({
       return;
     }
     setCurrentStepIndex(0);
-    setHistory([]);
+    setGoalHistory([]);
     setSelectedOptions({});
     setSelectedSuggestions({});
+    setPromptHistory([{ text: initialPrompt, timestamp: Date.now() }]);
     setStep({ type: 'loading', message: 'Generating initial options...' });
 
     startTransition(async () => {
@@ -123,32 +341,32 @@ export function RefinementWizard({
     }));
   };
 
-  const handleSuggestionSelect = (questionIndex: number, optionText: string) => {
-    setSelectedSuggestions(prev => ({
+  const handleSuggestionSelect = (
+    questionIndex: number,
+    optionText: string
+  ) => {
+    setSelectedSuggestions((prev) => ({
       ...prev,
       [questionIndex]: optionText,
-    }))
+    }));
   };
 
   const handleApplySuggestions = () => {
-    // In this new flow, we just take the last selected suggestion's text,
-    // as it contains the fully formulated prompt.
     const lastSelectionKey = Object.keys(selectedSuggestions).sort().pop();
     if (lastSelectionKey) {
-        const finalText = selectedSuggestions[parseInt(lastSelectionKey)];
-        onPromptUpdate(() => finalText);
-        toast({
-            title: 'Prompt Refined!',
-            description: 'Your prompt has been updated with the optimized version.',
-        });
+      const finalText = selectedSuggestions[parseInt(lastSelectionKey)];
+      onPromptUpdate(() => finalText);
+      addToHistory(finalText);
+      toast({
+        title: 'Prompt Refined!',
+        description: 'Your prompt has been updated with the optimized version.',
+      });
     } else {
-        // Fallback to old method if something goes wrong, but it shouldn't.
-        const allSuggestions = Object.values(selectedSuggestions).join(' ');
-        onPromptUpdate(prev => `${prev.trim()} ${allSuggestions.trim()}`);
+      const allSuggestions = Object.values(selectedSuggestions).join(' ');
+      onPromptUpdate((prev) => `${prev.trim()} ${allSuggestions.trim()}`);
     }
     setStep({ type: 'finished' });
   };
-
 
   const handleNextStep = useCallback(() => {
     const currentQuestionCount = step.type === 'options' ? step.data.length : 0;
@@ -162,8 +380,8 @@ export function RefinementWizard({
     }
 
     const selections = Object.values(selectedOptions);
-    const newHistory = [...history, ...selections];
-    setHistory(newHistory);
+    const newHistory = [...goalHistory, ...selections];
+    setGoalHistory(newHistory);
     setSelectedOptions({});
     const nextStepIndex = currentStepIndex + 1;
     setCurrentStepIndex(nextStepIndex);
@@ -216,7 +434,7 @@ export function RefinementWizard({
     }
   }, [
     currentStepIndex,
-    history,
+    goalHistory,
     initialPrompt,
     getApiKeys,
     settings.models.analysis,
@@ -228,12 +446,12 @@ export function RefinementWizard({
   const handleBack = () => {
     if (step.type === 'suggestions') {
       const prevStepIndex = WIZARD_FLOW.length - 1;
-      const newHistory = history.slice(
+      const newHistory = goalHistory.slice(
         0,
-        history.length - Object.keys(selectedOptions).length
+        goalHistory.length - Object.keys(selectedOptions).length
       );
       setCurrentStepIndex(prevStepIndex);
-      setHistory(newHistory);
+      setGoalHistory(newHistory);
       setSelectedOptions({});
       setStep({ type: 'loading', message: 'Going back...' });
       startTransition(async () => {
@@ -255,10 +473,9 @@ export function RefinementWizard({
 
     if (currentStepIndex > 0) {
       const prevStepIndex = currentStepIndex - 1;
-      // This history logic might need adjustment depending on how many selections were made in the previous step
       const newHistory = []; // Simple reset for now
       setCurrentStepIndex(prevStepIndex);
-      setHistory(newHistory);
+      setGoalHistory(newHistory);
       setSelectedOptions({});
       setStep({ type: 'loading', message: 'Loading previous step...' });
       startTransition(async () => {
@@ -284,13 +501,22 @@ export function RefinementWizard({
       });
     } else {
       setStep({ type: 'idle' });
+      setPromptHistory([]);
     }
   };
 
-  // Effect to reset wizard if the prompt text is cleared
+  const handleRestoreFromHistory = (text: string) => {
+    onPromptUpdate(() => text);
+    toast({
+      title: 'Prompt Restored',
+      description: 'The selected version has been restored to the editor.',
+    });
+  };
+
   useEffect(() => {
     if (!initialPrompt.trim()) {
       setStep({ type: 'idle' });
+      setPromptHistory([]);
     }
   }, [initialPrompt]);
 
@@ -344,12 +570,22 @@ export function RefinementWizard({
         return (
           <div className="flex flex-col h-full">
             <div className="flex items-center mb-4 shrink-0">
-              <Button onClick={handleBack} variant="ghost" size="sm" disabled={isGenerating}>
+              <Button
+                onClick={handleBack}
+                variant="ghost"
+                size="sm"
+                disabled={isGenerating}
+              >
                 <ArrowLeft className="mr-2 h-4 w-4" /> Back
               </Button>
               <div className="flex-1 text-center font-bold">
                 {WIZARD_FLOW[currentStepIndex].title}
               </div>
+              <HistoryDialog
+                history={promptHistory}
+                onRestore={handleRestoreFromHistory}
+                getApiKeys={getApiKeys}
+              />
             </div>
             <div className="space-y-4 flex-1 overflow-y-auto pr-2">
               {questions.map((question, qIndex) => (
@@ -397,22 +633,33 @@ export function RefinementWizard({
         );
 
       case 'suggestions':
-        const allSuggestionsAnswered = Object.keys(selectedSuggestions).length === step.data.length;
+        const allSuggestionsAnswered =
+          Object.keys(selectedSuggestions).length === step.data.length;
         return (
           <div className="space-y-4 h-full flex flex-col">
-             <div className="flex items-center mb-2 shrink-0">
-              <Button onClick={handleBack} variant="ghost" size="sm" disabled={isGenerating}>
+            <div className="flex items-center mb-2 shrink-0">
+              <Button
+                onClick={handleBack}
+                variant="ghost"
+                size="sm"
+                disabled={isGenerating}
+              >
                 <ArrowLeft className="mr-2 h-4 w-4" /> Back
               </Button>
               <div className="flex-1 text-center font-bold">
                 Step 3: Apply Refinements
               </div>
+               <HistoryDialog
+                history={promptHistory}
+                onRestore={handleRestoreFromHistory}
+                getApiKeys={getApiKeys}
+              />
             </div>
             <div className="flex-1 overflow-y-auto pr-2 space-y-4">
               {step.data.map((question, qIndex) => (
                 <Card key={qIndex}>
                   <CardHeader>
-                     <CardTitle className="text-base flex items-center gap-2">
+                    <CardTitle className="text-base flex items-center gap-2">
                       {question.title}
                     </CardTitle>
                     <CardDescription>{question.explanation}</CardDescription>
@@ -422,20 +669,28 @@ export function RefinementWizard({
                       <Card
                         key={oIndex}
                         className="cursor-pointer hover:bg-muted/50 transition-colors flex flex-col data-[selected=true]:ring-2 data-[selected=true]:ring-primary"
-                        data-selected={selectedSuggestions[qIndex] === option.text}
-                        onClick={() => handleSuggestionSelect(qIndex, option.text)}
+                        data-selected={
+                          selectedSuggestions[qIndex] === option.text
+                        }
+                        onClick={() =>
+                          handleSuggestionSelect(qIndex, option.text)
+                        }
                       >
                         <CardHeader className="p-3 flex-1 flex flex-row items-start gap-3 space-y-0">
-                          {option.icon && <span className="text-xl mt-1">{option.icon}</span>}
+                          {option.icon && (
+                            <span className="text-xl mt-1">{option.icon}</span>
+                          )}
                           <div className="flex-1">
                             <CardTitle className="text-sm font-semibold">
                               {option.title}
                             </CardTitle>
-                             <p className="text-xs font-style: italic text-muted-foreground/80">
+                            <p className="text-xs font-style: italic text-muted-foreground/80">
                               {option.example}
                             </p>
                           </div>
-                          {selectedSuggestions[qIndex] === option.text && <Check className="h-5 w-5 text-primary" />}
+                          {selectedSuggestions[qIndex] === option.text && (
+                            <Check className="h-5 w-5 text-primary" />
+                          )}
                         </CardHeader>
                       </Card>
                     ))}
@@ -443,7 +698,7 @@ export function RefinementWizard({
                 </Card>
               ))}
             </div>
-             <div className="pt-4 flex justify-end shrink-0">
+            <div className="pt-4 flex justify-end shrink-0">
               <Button
                 onClick={handleApplySuggestions}
                 disabled={!allSuggestionsAnswered || isGenerating}
