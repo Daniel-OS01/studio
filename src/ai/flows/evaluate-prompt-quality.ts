@@ -8,7 +8,7 @@
  * - EvaluatePromptQualityOutput - The return type for the evaluatePromptQuality function.
  */
 
-import {ai} from '@/ai/genkit';
+import {genkit} from 'genkit';
 import {googleAI} from '@genkit-ai/google-genai';
 import {z} from 'genkit';
 
@@ -34,36 +34,34 @@ export async function evaluatePromptQuality(
   return evaluatePromptQualityFlow(input);
 }
 
-const evaluatePromptQualityFlow = ai.defineFlow(
-  {
-    name: 'evaluatePromptQualityFlow',
-    inputSchema: EvaluatePromptQualityInputSchema,
-    outputSchema: EvaluatePromptQualityOutputSchema,
-  },
-  async ({prompt: promptText, apiKeys, modelName}) => {
+const evaluatePromptQualityFlow = async ({prompt: promptText, apiKeys, modelName}: EvaluatePromptQualityInput) => {
     const keysToTry = apiKeys?.length ? apiKeys : [undefined];
-    const model = modelName ? googleAI.model(modelName) : undefined;
+    const model = modelName ? googleAI.model(modelName) : 'googleai/gemini-2.5-flash';
     
     for (const key of keysToTry) {
       try {
-        const plugins = key ? [googleAI({apiKey: key})] : [];
-        const {output} = await ai.generate({
+        // Create a new, isolated Genkit instance for each attempt
+        const localAi = genkit({
+            plugins: key ? [googleAI({apiKey: key})] : [googleAI()],
+        });
+
+        const {output} = await localAi.generate({
           prompt: `You are an AI prompt evaluator. You will evaluate the quality of a prompt based on clarity, specificity, and potential for bias.\n\nClarity: How easy is the prompt to understand? (0-10)\nSpecificity: How specific is the prompt? (0-10)\nPotential for Bias: How likely is the prompt to produce biased results? (0-10)\n\nProvide a score (0-10) for each of these categories, and provide suggestions for improving the prompt.\n\nPrompt: ${promptText}`,
-          model: model!,
+          model: model,
           output: {
             schema: EvaluatePromptQualityOutputSchema,
           },
-          plugins,
         });
         return output;
       } catch (error: any) {
-        if (error.status === 429 && keysToTry.indexOf(key) < keysToTry.length - 1) {
-          console.log(`API key ${key?.slice(0, 8)}... failed with rate limit. Trying next key.`);
+        const isRateLimitError = error.cause?.status === 429 || error.status === 429;
+        if (isRateLimitError && keysToTry.indexOf(key) < keysToTry.length - 1) {
+          console.log(`API key ending in ...${key?.slice(-4)} failed with rate limit. Trying next key.`);
           continue;
         }
         throw error;
       }
     }
-    throw new Error("All API keys failed or no keys were provided.");
+    throw new Error("All API keys failed due to rate limiting or other errors.");
   }
-);
+;

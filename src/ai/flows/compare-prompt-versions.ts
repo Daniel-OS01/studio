@@ -8,7 +8,7 @@
  * - ComparePromptVersionsOutput - The return type for the comparePromptVersions function.
  */
 
-import {ai} from '@/ai/genkit';
+import {genkit} from 'genkit';
 import {googleAI} from '@genkit-ai/google-genai';
 import {z} from 'genkit';
 
@@ -30,19 +30,17 @@ export async function comparePromptVersions(input: ComparePromptVersionsInput): 
   return comparePromptVersionsFlow(input);
 }
 
-const comparePromptVersionsFlow = ai.defineFlow(
-  {
-    name: 'comparePromptVersionsFlow',
-    inputSchema: ComparePromptVersionsInputSchema,
-    outputSchema: ComparePromptVersionsOutputSchema,
-  },
-  async ({promptVersion1, promptVersion2, apiKeys}) => {
+const comparePromptVersionsFlow = async ({promptVersion1, promptVersion2, apiKeys}: ComparePromptVersionsInput) => {
     const keysToTry = apiKeys?.length ? apiKeys : [undefined];
     
     for (const key of keysToTry) {
       try {
-        const plugins = key ? [googleAI({apiKey: key})] : [];
-        const {output} = await ai.generate({
+        // Create a new, isolated Genkit instance for each attempt
+        const localAi = genkit({
+            plugins: key ? [googleAI({apiKey: key})] : [googleAI()],
+        });
+
+        const {output} = await localAi.generate({
           prompt: `You are an AI prompt expert. Compare the two prompt versions provided below and highlight the key differences and their potential impact on the AI's response.
 
 Prompt Version 1:
@@ -53,20 +51,21 @@ ${promptVersion2}
 
 Analysis:
 `,
+          model: 'googleai/gemini-2.5-flash',
           output: {
             schema: ComparePromptVersionsOutputSchema,
           },
-          plugins,
         });
         return output;
       } catch (error: any) {
-        if (error.status === 429 && keysToTry.indexOf(key) < keysToTry.length - 1) {
-          console.log(`API key ${key?.slice(0, 8)}... failed with rate limit. Trying next key.`);
+        const isRateLimitError = error.cause?.status === 429 || error.status === 429;
+        if (isRateLimitError && keysToTry.indexOf(key) < keysToTry.length - 1) {
+          console.log(`API key ending in ...${key?.slice(-4)} failed with rate limit. Trying next key.`);
           continue;
         }
         throw error;
       }
     }
-    throw new Error("All API keys failed or no keys were provided.");
+    throw new Error("All API keys failed due to rate limiting or other errors.");
   }
-);
+;

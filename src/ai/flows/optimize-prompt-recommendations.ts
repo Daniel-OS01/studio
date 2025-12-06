@@ -8,9 +8,10 @@
  * - OptimizePromptRecommendationsOutput - The return type for the optimizePromptRecommendations function.
  */
 
-import {ai} from '@/ai/genkit';
+import {genkit} from 'genkit';
 import {googleAI} from '@genkit-ai/google-genai';
 import {z} from 'genkit';
+import { ai as defaultAi } from '@/ai/genkit';
 
 const OptimizePromptRecommendationsInputSchema = z.object({
   promptText: z.string().describe('The prompt text to be optimized.'),
@@ -34,7 +35,7 @@ export async function optimizePromptRecommendations(
   return optimizePromptRecommendationsFlow(input);
 }
 
-const evaluateBestPracticeTool = ai.defineTool({
+const evaluateBestPracticeTool = defaultAi.defineTool({
   name: 'evaluateBestPractice',
   description: 'Evaluates if a prompt follows the prompt engineering best practices.',
   inputSchema: z.object({
@@ -49,31 +50,28 @@ async (input) => {
   }
 );
 
-const optimizePromptRecommendationsFlow = ai.defineFlow(
-  {
-    name: 'optimizePromptRecommendationsFlow',
-    inputSchema: OptimizePromptRecommendationsInputSchema,
-    outputSchema: OptimizePromptRecommendationsOutputSchema,
-  },
-  async ({promptText, apiKeys, modelName}) => {
+const optimizePromptRecommendationsFlow = async ({promptText, apiKeys, modelName}: OptimizePromptRecommendationsInput) => {
     const keysToTry = apiKeys?.length ? apiKeys : [undefined];
-    const model = modelName ? googleAI.model(modelName) : undefined;
+    const model = modelName ? googleAI.model(modelName) : 'googleai/gemini-2.5-flash';
 
     for (const key of keysToTry) {
         try {
-            const plugins = key ? [googleAI({apiKey: key})] : [];
-            const {output} = await ai.generate({
+            // Create a new, isolated Genkit instance for each attempt
+            const localAi = genkit({
+                plugins: key ? [googleAI({apiKey: key})] : [googleAI()],
+            });
+
+            const {output} = await localAi.generate({
                 prompt: `You are an AI prompt optimizer. Your job is to take a prompt and provide a list of recommendations on how to improve it. Use the evaluateBestPractice tool to evaluate the best practice.
 
 Prompt: ${promptText}
 Here are the recommendations:
 `,
-                model: model!,
+                model: model,
                 tools: [evaluateBestPracticeTool],
                 output: {
                     schema: OptimizePromptRecommendationsOutputSchema,
                 },
-                plugins,
                 safetySettings: [
                   {
                     category: 'HARM_CATEGORY_HATE_SPEECH',
@@ -95,13 +93,14 @@ Here are the recommendations:
             });
             return output;
         } catch (error: any) {
-            if (error.status === 429 && keysToTry.indexOf(key) < keysToTry.length - 1) {
-                console.log(`API key ${key?.slice(0,8)}... failed with rate limit. Trying next key.`);
+            const isRateLimitError = error.cause?.status === 429 || error.status === 429;
+            if (isRateLimitError && keysToTry.indexOf(key) < keysToTry.length - 1) {
+                console.log(`API key ending in ...${key?.slice(-4)} failed with rate limit. Trying next key.`);
                 continue;
             }
             throw error;
         }
     }
-    throw new Error("All API keys failed or no keys were provided.");
+    throw new Error("All API keys failed due to rate limiting or other errors.");
   }
-);
+;

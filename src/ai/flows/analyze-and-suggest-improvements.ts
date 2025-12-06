@@ -8,7 +8,7 @@
  * - AnalyzeAndSuggestImprovementsOutput - The return type for the analyzeAndSuggestImprovements function.
  */
 
-import {ai} from '@/ai/genkit';
+import {genkit} from 'genkit';
 import {googleAI} from '@genkit-ai/google-genai';
 import {z} from 'genkit';
 
@@ -35,43 +35,40 @@ export async function analyzeAndSuggestImprovements(
   return analyzeAndSuggestImprovementsFlow(input);
 }
 
-const analyzeAndSuggestImprovementsFlow = ai.defineFlow(
-  {
-    name: 'analyzeAndSuggestImprovementsFlow',
-    inputSchema: AnalyzeAndSuggestImprovementsInputSchema,
-    outputSchema: AnalyzeAndSuggestImprovementsOutputSchema,
-  },
-  async ({prompt: promptText, apiKeys, modelName}) => {
+const analyzeAndSuggestImprovementsFlow = async ({prompt: promptText, apiKeys, modelName}: AnalyzeAndSuggestImprovementsInput) => {
     const keysToTry = apiKeys?.length ? apiKeys : [undefined];
-    const model = modelName ? googleAI.model(modelName) : undefined;
+    const model = modelName ? googleAI.model(modelName) : 'googleai/gemini-2.5-flash';
     
     for (const key of keysToTry) {
       try {
-        const plugins = key ? [googleAI({apiKey: key})] : [];
-        const {output} = await ai.generate({
+        // Create a new, isolated Genkit instance for each attempt
+        const localAi = genkit({
+            plugins: key ? [googleAI({apiKey: key})] : [googleAI()],
+        });
+
+        const {output} = await localAi.generate({
           prompt: `You are an AI prompt expert. Your job is to analyze the prompt provided and suggest improvements.
 
-Prompt: {{{prompt}}}
+Prompt: ${promptText}
 
 First, provide a detailed analysis of the prompt, including potential weaknesses.
 Second, provide specific suggestions for improving the prompt to get better results from an AI model.
 Be as detailed as possible.`,
-          history: [{role: 'user', content: [{text: `Prompt: ${promptText}`}]}],
-          model: model!,
+          model: model,
           output: {
             schema: AnalyzeAndSuggestImprovementsOutputSchema,
           },
-          plugins,
         });
         return output;
       } catch (error: any) {
-        if (error.status === 429 && keysToTry.indexOf(key) < keysToTry.length - 1) {
-          console.log(`API key ${key?.slice(0, 8)}... failed with rate limit. Trying next key.`);
+        const isRateLimitError = error.cause?.status === 429 || error.status === 429;
+        if (isRateLimitError && keysToTry.indexOf(key) < keysToTry.length - 1) {
+          console.log(`API key ending in ...${key?.slice(-4)} failed with rate limit. Trying next key.`);
           continue;
         }
         throw error;
       }
     }
-    throw new Error("All API keys failed or no keys were provided.");
+    throw new Error("All API keys failed due to rate limiting or other errors.");
   }
-);
+;
