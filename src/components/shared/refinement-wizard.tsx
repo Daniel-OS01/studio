@@ -4,13 +4,18 @@ import { generateRefinementOptions } from '@/ai/flows/generate-refinement-option
 import { refinePrompt } from '@/ai/flows/refine-prompt';
 import { useLocalStorage } from '@/hooks/use-local-storage';
 import { useToast } from '@/hooks/use-toast';
-import type { AppSettings, GenerateRefinementOptionsOutput, RefinePromptOutput } from '@/lib/types';
+import type {
+  AppSettings,
+  GenerateRefinementOptionsOutput,
+  RefinePromptOutput,
+} from '@/lib/types';
 import {
   AlertTriangle,
   ArrowLeft,
   Loader2,
   Sparkles,
   Check,
+  ChevronRight,
 } from 'lucide-react';
 import React, { useState, useTransition, useCallback, useEffect } from 'react';
 import { Button } from '../ui/button';
@@ -20,7 +25,13 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '../ui/card';
 
 interface RefinementWizardProps {
   initialPrompt: string;
@@ -47,6 +58,7 @@ export function RefinementWizard({
   const [step, setStep] = useState<WizardStep>({ type: 'idle' });
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [history, setHistory] = useState<string[]>([]);
+  const [selectedOptions, setSelectedOptions] = useState<Record<number, string>>({});
   const [isGenerating, startTransition] = useTransition();
   const { toast } = useToast();
 
@@ -80,6 +92,7 @@ export function RefinementWizard({
     }
     setCurrentStepIndex(0);
     setHistory([]);
+    setSelectedOptions({});
     setStep({ type: 'loading', message: 'Generating initial options...' });
 
     startTransition(async () => {
@@ -96,34 +109,64 @@ export function RefinementWizard({
         setStep({
           type: 'error',
           message:
-            e.message || 'Failed to generate refinement options. Please check your API key.',
+            e.message ||
+            'Failed to generate refinement options. Please check your API key.',
         });
       }
     });
   }, [initialPrompt, getApiKeys, toast, settings.models.analysis]);
 
-  const handleOptionSelect = useCallback((optionTitle: string) => {
-    const newHistory = [...history, optionTitle];
+  const handleOptionSelect = (questionIndex: number, optionTitle: string) => {
+    setSelectedOptions(prev => ({
+      ...prev,
+      [questionIndex]: optionTitle,
+    }));
+  };
+
+  const handleNextStep = useCallback(() => {
+    const currentQuestionCount = step.type === 'options' ? step.data.length : 0;
+    if (Object.keys(selectedOptions).length < currentQuestionCount) {
+        toast({
+            title: "Selections missing",
+            description: "Please select an option for each question.",
+            variant: "destructive"
+        });
+        return;
+    }
+
+    const selections = Object.values(selectedOptions);
+    const newHistory = [...history, ...selections];
     setHistory(newHistory);
+    setSelectedOptions({});
     const nextStepIndex = currentStepIndex + 1;
     setCurrentStepIndex(nextStepIndex);
 
     if (nextStepIndex < WIZARD_FLOW.length) {
-       setStep({ type: 'loading', message: `Generating options for ${WIZARD_FLOW[nextStepIndex].topic}...` });
-       startTransition(async () => {
+      setStep({
+        type: 'loading',
+        message: `Generating options for ${WIZARD_FLOW[nextStepIndex].topic}...`,
+      });
+      startTransition(async () => {
         try {
-            const result = await generateRefinementOptions({
-                prompt: initialPrompt,
-                topic: WIZARD_FLOW[nextStepIndex].topic,
-                history: newHistory,
-                apiKeys: getApiKeys(),
-                modelName: settings.models.analysis,
-            });
-            setStep({ type: 'options', data: result, topic: WIZARD_FLOW[nextStepIndex].topic });
-        } catch (e:any) {
-            setStep({ type: 'error', message: e.message || "Failed to load next step."})
+          const result = await generateRefinementOptions({
+            prompt: initialPrompt,
+            topic: WIZARD_FLOW[nextStepIndex].topic,
+            history: newHistory,
+            apiKeys: getApiKeys(),
+            modelName: settings.models.analysis,
+          });
+          setStep({
+            type: 'options',
+            data: result,
+            topic: WIZARD_FLOW[nextStepIndex].topic,
+          });
+        } catch (e: any) {
+          setStep({
+            type: 'error',
+            message: e.message || 'Failed to load next step.',
+          });
         }
-       });
+      });
     } else {
       // Final step: get concrete suggestions
       setStep({ type: 'loading', message: 'Generating final suggestions...' });
@@ -137,67 +180,90 @@ export function RefinementWizard({
           });
           setStep({ type: 'suggestions', data: result });
         } catch (e: any) {
-          setStep({ type: 'error', message: e.message || 'Failed to get final suggestions.' });
+          setStep({
+            type: 'error',
+            message: e.message || 'Failed to get final suggestions.',
+          });
         }
       });
     }
-  }, [currentStepIndex, history, initialPrompt, getApiKeys, settings.models.analysis]);
+  }, [
+    currentStepIndex,
+    history,
+    initialPrompt,
+    getApiKeys,
+    settings.models.analysis,
+    selectedOptions,
+    step,
+    toast
+  ]);
 
   const handleSuggestionApply = (text: string) => {
-    onPromptUpdate(
-      (prev) => `${prev.trim()} ${text.trim()}`
-    );
+    onPromptUpdate((prev) => `${prev.trim()} ${text.trim()}`);
     toast({
       title: 'Suggestion Applied!',
       description: 'Your prompt has been updated.',
     });
     setStep({ type: 'finished' });
   };
-  
+
   const handleBack = () => {
     if (step.type === 'suggestions') {
-        const prevStepIndex = WIZARD_FLOW.length -1;
-        const newHistory = history.slice(0,-1);
-        setCurrentStepIndex(prevStepIndex);
-        setHistory(newHistory);
-        setStep({ type: 'loading', message: "Going back..."})
-         startTransition(async () => {
-            const result = await generateRefinementOptions({
-                prompt: initialPrompt,
-                topic: WIZARD_FLOW[prevStepIndex].topic,
-                history: newHistory,
-                apiKeys: getApiKeys(),
-                modelName: settings.models.analysis,
-            });
-            setStep({ type: 'options', data: result, topic: WIZARD_FLOW[prevStepIndex].topic });
-         });
-        return;
+      const prevStepIndex = WIZARD_FLOW.length - 1;
+      const newHistory = history.slice(0, history.length - Object.keys(selectedOptions).length);
+      setCurrentStepIndex(prevStepIndex);
+      setHistory(newHistory);
+      setSelectedOptions({});
+      setStep({ type: 'loading', message: 'Going back...' });
+      startTransition(async () => {
+        const result = await generateRefinementOptions({
+          prompt: initialPrompt,
+          topic: WIZARD_FLOW[prevStepIndex].topic,
+          history: newHistory,
+          apiKeys: getApiKeys(),
+          modelName: settings.models.analysis,
+        });
+        setStep({
+          type: 'options',
+          data: result,
+          topic: WIZARD_FLOW[prevStepIndex].topic,
+        });
+      });
+      return;
     }
 
     if (currentStepIndex > 0) {
-        const prevStepIndex = currentStepIndex - 1;
-        const newHistory = history.slice(0, -1);
-        setCurrentStepIndex(prevStepIndex);
-        setHistory(newHistory);
-        setStep({ type: 'loading', message: 'Loading previous step...'});
-        startTransition(async () => {
-            try {
-                const result = await generateRefinementOptions({
-                    prompt: initialPrompt,
-                    topic: WIZARD_FLOW[prevStepIndex].topic,
-                    history: newHistory,
-                    apiKeys: getApiKeys(),
-                    modelName: settings.models.analysis,
-                });
-                setStep({ type: 'options', data: result, topic: WIZARD_FLOW[prevStepIndex].topic });
-            } catch(e: any) {
-                setStep({ type: 'error', message: e.message || "Could not go back."});
-            }
-        });
+      const prevStepIndex = currentStepIndex - 1;
+      const newHistory = history.slice(0, history.length - Object.keys(selectedOptions).length);
+      setCurrentStepIndex(prevStepIndex);
+      setHistory(newHistory);
+      setSelectedOptions({});
+      setStep({ type: 'loading', message: 'Loading previous step...' });
+      startTransition(async () => {
+        try {
+          const result = await generateRefinementOptions({
+            prompt: initialPrompt,
+            topic: WIZARD_FLOW[prevStepIndex].topic,
+            history: newHistory,
+            apiKeys: getApiKeys(),
+            modelName: settings.models.analysis,
+          });
+          setStep({
+            type: 'options',
+            data: result,
+            topic: WIZARD_FLOW[prevStepIndex].topic,
+          });
+        } catch (e: any) {
+          setStep({
+            type: 'error',
+            message: e.message || 'Could not go back.',
+          });
+        }
+      });
     } else {
-        setStep({ type: 'idle' });
+      setStep({ type: 'idle' });
     }
-  }
+  };
 
   // Effect to reset wizard if the prompt text is cleared
   useEffect(() => {
@@ -205,7 +271,6 @@ export function RefinementWizard({
       setStep({ type: 'idle' });
     }
   }, [initialPrompt]);
-
 
   const renderStep = () => {
     switch (step.type) {
@@ -217,7 +282,10 @@ export function RefinementWizard({
               Enter a prompt on the left and click below to begin the guided
               refinement process.
             </p>
-            <Button onClick={startWizard} disabled={isGenerating || !initialPrompt.trim()}>
+            <Button
+              onClick={startWizard}
+              disabled={isGenerating || !initialPrompt.trim()}
+            >
               <Sparkles />
               Start Wizard
             </Button>
@@ -231,46 +299,112 @@ export function RefinementWizard({
             <p>{step.message}</p>
           </div>
         );
-      
+
       case 'error':
         return (
-            <div className="flex flex-col items-center justify-center h-full gap-2 text-destructive text-center">
-                <AlertTriangle className="h-8 w-8" />
-                <p className="font-semibold">Wizard Error</p>
-                <p className="text-sm max-w-md">{step.message}</p>
-                <Button onClick={startWizard} variant="secondary">
-                  Try Again
-                </Button>
-              </div>
-        )
+          <div className="flex flex-col items-center justify-center h-full gap-2 text-destructive text-center">
+            <AlertTriangle className="h-8 w-8" />
+            <p className="font-semibold">Wizard Error</p>
+            <p className="text-sm max-w-md">{step.message}</p>
+            <Button onClick={startWizard} variant="secondary">
+              Try Again
+            </Button>
+          </div>
+        );
 
       case 'options':
+        const questions = step.data;
+        const allQuestionsAnswered = Object.keys(selectedOptions).length === questions.length;
+        
+        return (
+          <div className='flex flex-col h-full'>
+            <div className="flex items-center mb-4">
+                <Button onClick={handleBack} variant="ghost" size="sm">
+                  <ArrowLeft className="mr-2 h-4 w-4" /> Back
+                </Button>
+                <div className="flex-1 text-center font-bold">
+                    {WIZARD_FLOW[currentStepIndex].title}
+                </div>
+            </div>
+            <div className='space-y-4 flex-1 overflow-y-auto pr-2'>
+              {questions.map((question, qIndex) => (
+                <Card key={qIndex}>
+                    <CardHeader>
+                        <CardTitle className="text-base flex items-center gap-2">{question.icon && <span className='text-lg'>{question.icon}</span>} {question.title}</CardTitle>
+                        <CardDescription>{question.explanation}</CardDescription>
+                    </CardHeader>
+                    <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {question.options.map((option, oIndex) => (
+                            <Button
+                                key={oIndex}
+                                variant={selectedOptions[qIndex] === option.title ? 'default' : 'outline'}
+                                className="w-full justify-start text-left h-auto py-2"
+                                onClick={() => handleOptionSelect(qIndex, option.title)}
+                            >
+                                {option.icon && <span className="text-xl mr-3">{option.icon}</span>}
+                                <span>{option.title}</span>
+                            </Button>
+                        ))}
+                    </CardContent>
+                </Card>
+              ))}
+            </div>
+            <div className='pt-4 flex justify-end'>
+                <Button onClick={handleNextStep} disabled={!allQuestionsAnswered || isGenerating}>
+                    Next <ChevronRight />
+                </Button>
+            </div>
+          </div>
+        );
+
+      case 'suggestions':
         return (
           <div className="space-y-4">
             <Button onClick={handleBack} variant="ghost" size="sm" className="mb-2">
               <ArrowLeft className="mr-2 h-4 w-4" /> Back
             </Button>
-            <Accordion type="single" collapsible className="w-full" defaultValue="item-0">
+            <Accordion
+              type="single"
+              collapsible
+              className="w-full"
+              defaultValue="item-0"
+            >
               {step.data.map((question, qIndex) => (
                 <AccordionItem value={`item-${qIndex}`} key={qIndex}>
                   <AccordionTrigger>
                     <div className="text-left">
                       <h4 className="font-semibold">{question.title}</h4>
-                      <p className="text-sm text-muted-foreground font-normal">{question.explanation}</p>
+                      <p className="text-sm text-muted-foreground font-normal">
+                        {question.explanation}
+                      </p>
                     </div>
                   </AccordionTrigger>
                   <AccordionContent>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                      {question.options.map((option) => (
-                        <Button
-                          key={option.title}
-                          variant="outline"
-                          className="w-full justify-start text-left h-auto py-2"
-                          onClick={() => handleOptionSelect(option.title)}
+                    <div className="space-y-2">
+                      {question.options.map((option, oIndex) => (
+                        <Card
+                          key={oIndex}
+                          className="cursor-pointer hover:bg-accent hover:text-accent-foreground transition-colors group"
+                          onClick={() => handleSuggestionApply(option.text)}
                         >
-                          {option.icon && <span className="text-xl mr-3">{option.icon}</span>}
-                          <span>{option.title}</span>
-                        </Button>
+                          <CardHeader className="p-4">
+                            <CardTitle className="text-base font-semibold flex items-center justify-between">
+                              {option.title}
+                              <Button
+                                size="sm"
+                                variant="secondary"
+                                className="opacity-0 group-hover:opacity-100 transition-opacity"
+                              >
+                                Apply
+                              </Button>
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent className="p-4 pt-0">
+                            <p className="text-xs font-style: italic text-muted-foreground/80 group-hover:text-accent-foreground/80">
+                              Example: {option.example}
+                            </p>
+                          </CardContent>
+                        </Card>
                       ))}
                     </div>
                   </AccordionContent>
@@ -280,65 +414,18 @@ export function RefinementWizard({
           </div>
         );
 
-    case 'suggestions':
-        return (
-            <div className="space-y-4">
-                 <Button onClick={handleBack} variant="ghost" size="sm" className="mb-2">
-                    <ArrowLeft className="mr-2 h-4 w-4" /> Back
-                </Button>
-                <Accordion type="single" collapsible className="w-full" defaultValue="item-0">
-                    {step.data.map((question, qIndex) => (
-                        <AccordionItem value={`item-${qIndex}`} key={qIndex}>
-                            <AccordionTrigger>
-                                <div className="text-left">
-                                    <h4 className="font-semibold">{question.title}</h4>
-                                    <p className="text-sm text-muted-foreground font-normal">{question.explanation}</p>
-                                </div>
-                            </AccordionTrigger>
-                            <AccordionContent>
-                                <div className="space-y-2">
-                                    {question.options.map((option, oIndex) => (
-                                        <Card 
-                                            key={oIndex}
-                                            className="cursor-pointer hover:bg-accent hover:text-accent-foreground transition-colors group"
-                                            onClick={() => handleSuggestionApply(option.text)}
-                                        >
-                                            <CardHeader className="p-4">
-                                                <CardTitle className="text-base font-semibold flex items-center justify-between">
-                                                    {option.title}
-                                                    <Button size="sm" variant="secondary" className="opacity-0 group-hover:opacity-100 transition-opacity">Apply</Button>
-                                                </CardTitle>
-                                            </CardHeader>
-                                            <CardContent className="p-4 pt-0">
-                                                 <p className="text-xs font-style: italic text-muted-foreground/80 group-hover:text-accent-foreground/80">
-                                                    Example: {option.example}
-                                                </p>
-                                            </CardContent>
-                                        </Card>
-                                    ))}
-                                </div>
-                            </AccordionContent>
-                        </AccordionItem>
-                    ))}
-                </Accordion>
-            </div>
-        );
-    
       case 'finished':
         return (
-            <div className="flex flex-col items-center justify-center h-full text-center gap-2">
-                <Check className="h-12 w-12 text-green-500"/>
-                <h3 className="font-semibold text-lg">
-                  Refinement Complete!
-                </h3>
-                <p className="text-muted-foreground max-w-sm">
-                  Your prompt has been updated. You can refine it further or start over.
-                </p>
-                <Button onClick={startWizard}>
-                    Start Over
-                </Button>
-              </div>
-        )
+          <div className="flex flex-col items-center justify-center h-full text-center gap-2">
+            <Check className="h-12 w-12 text-green-500" />
+            <h3 className="font-semibold text-lg">Refinement Complete!</h3>
+            <p className="text-muted-foreground max-w-sm">
+              Your prompt has been updated. You can refine it further or start
+              over.
+            </p>
+            <Button onClick={startWizard}>Start Over</Button>
+          </div>
+        );
     }
   };
 

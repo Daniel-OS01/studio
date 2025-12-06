@@ -8,8 +8,7 @@
  */
 
 import { googleAI } from '@genkit-ai/google-genai';
-import { genkit } from 'genkit';
-import { z } from 'zod';
+import { genkit, z } from 'genkit';
 
 const GenerateRefinementOptionsInputSchema = z.object({
   prompt: z.string().describe('The initial prompt to refine.'),
@@ -44,6 +43,7 @@ const RefinementQuestionSchema = z.object({
   title: z
     .string()
     .describe('The question for this wizard step (e.g., "What is the primary goal?").'),
+  icon: z.string().optional().describe('A relevant emoji for the question title.'),
   explanation: z.string().describe('A brief explanation of the step.'),
   options: z
     .array(RefinementGoalSchema)
@@ -99,8 +99,9 @@ const generateRefinementOptionsFlow = async ({
         You MUST generate a list of 2 to 5 different questions related to the topic.
         For each question in the list, you MUST provide:
         1. A clear 'title' for the question (e.g., "What is the primary goal of your prompt?").
-        2. A brief 'explanation' of why this question is important.
-        3. A list of 3 to 6 diverse, high-level refinement goals ('options') for that question.
+        2. A relevant 'icon' (emoji) for the question.
+        3. A brief 'explanation' of why this question is important.
+        4. A list of 3 to 6 diverse, high-level refinement goals ('options') for that question.
         
         Each individual 'option' within a question MUST include:
         - A short 'title' (e.g., "Increase output specificity").
@@ -109,9 +110,10 @@ const generateRefinementOptionsFlow = async ({
         Example for a single question object in the final array:
         {
           "title": "What is the primary goal of your prompt?",
+          "icon": "🎯",
           "explanation": "Understanding the main objective helps tailor the suggestions.",
           "options": [
-            { "title": "Increase output specificity", "icon": "🎯" },
+            { "title": "Increase output specificity", "icon": "🔍" },
             { "title": "Enhance creative variation", "icon": "🎨" },
             { "title": "Improve structural adherence", "icon": "🏗️" }
           ]
