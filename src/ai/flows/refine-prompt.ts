@@ -31,10 +31,14 @@ const RefinementOptionSchema = z.object({
   icon: z.string().optional().describe('A relevant emoji for the option.'),
   text: z
     .string()
-    .describe('The text to be appended to the prompt if this option is chosen.'),
+    .describe(
+      'The final, fully refined and optimized prompt text to be used if this combination of options is chosen.'
+    ),
   example: z
     .string()
-    .describe('An example of how this option improves a sample prompt.'),
+    .describe(
+      'An example of how this option improves a sample prompt.'
+    ),
 });
 
 const RefinementQuestionSchema = z.object({
@@ -97,24 +101,33 @@ const refinePromptFlow = async ({
         Based on this, you MUST generate a list of 3 to 6 different questions. Each question must be from a different perspective (e.g., one about tone, one about format, one about specificity, etc.).
 
         For each question in the list, you MUST provide:
-        1. A clear 'title' for the question (e.g., "How can we make the subject more specific?").
+        1. A clear 'title' for the question (e.g., "What kind of tone or mood should the short story have?").
         2. A brief 'explanation' of why this question is important for achieving the user's goal.
         3. A list of 3 to 6 diverse, actionable 'options' for that question.
         
         Each individual 'option' within a question MUST include:
-        - A short 'title' (for a button).
-        - A relevant emoji 'icon'.
-        - The 'text' that should be appended to the original prompt if chosen.
-        - An 'example' showing how the suggestion improves a sample prompt, similar to pretty-prompt.com.
-        
+        - A short 'title' for the option (e.g., "Epic/Heroic").
+        - A relevant emoji 'icon' (e.g., "⚔️").
+        - An 'example' showing how the suggestion improves a sample prompt.
+        - The final, complete, optimized prompt 'text' that should be used if the user selects this option. This optimized prompt should be a complete reformulation of the original, incorporating the specific choice. It should be structured with sections like "Role:", "Task:", "Key Requirements:", and a final "Optimized Prompt:".
+
         Example for a single question object in the final array:
         {
-          "title": "What kind of dragon is it?",
-          "explanation": "Defining the dragon's nature will shape the story's conflict and character.",
+          "title": "What kind of tone should the story have?",
+          "explanation": "The tone significantly influences the narrative style and word choice.",
           "options": [
-            { "title": "A wise, ancient dragon", "icon": "🐉", "text": "The story should feature a wise, ancient dragon.", "example": "For a story about a library, adding '...a wise, ancient dragon' as the librarian adds depth." },
-            { "title": "A young, reckless dragon", "icon": "🔥", "text": "The story should feature a young, reckless dragon.", "example": "For a story about a race, adding '...featuring a young, reckless dragon' raises the stakes." },
-            { "title": "A metallic, clockwork dragon", "icon": "⚙️", "text": "The story should feature a metallic, clockwork dragon.", "example": "For a sci-fi story, adding '...a metallic, clockwork dragon' sets a steampunk tone." }
+            { 
+              "title": "Epic/Heroic", 
+              "icon": "⚔️", 
+              "text": "Role: You are a Master Storyteller specializing in Epic Fantasy.\\n\\nTask: Write a compelling short story about a dragon.\\n\\nKey Requirements:\\n1. Tone/Mood: The story must have an Epic and Heroic atmosphere.\\n\\nOptimized Prompt:\\nCraft a short story with an Epic and Heroic tone. The narrative must feature a dragon, detailing a legendary event or a moment of profound conflict.",
+              "example": "For a story about a dragon, specifying an 'Epic/Heroic' tone focuses the AI on grand scale and valor."
+            },
+            { 
+              "title": "Humorous/Lighthearted", 
+              "icon": "😂", 
+              "text": "Role: You are a Comedy Writer.\\n\\nTask: Write a funny short story about a dragon.\\n\\nKey Requirements:\\n1. Tone/Mood: The story must be humorous and lighthearted.\\n\\nOptimized Prompt:\\nWrite a humorous, lighthearted short story about a dragon who has an unusual problem, like hoarding rubber ducks instead of gold.",
+              "example": "For a story about a dragon, a 'Humorous' tone shifts the focus to comedy and absurd situations."
+            }
           ]
         }
         

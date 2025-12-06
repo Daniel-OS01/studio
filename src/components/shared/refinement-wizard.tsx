@@ -131,14 +131,24 @@ export function RefinementWizard({
   };
 
   const handleApplySuggestions = () => {
-    const allSuggestions = Object.values(selectedSuggestions).join(' ');
-    onPromptUpdate(prev => `${prev.trim()} ${allSuggestions.trim()}`);
-    toast({
-      title: 'Suggestions Applied!',
-      description: 'Your prompt has been updated with the selected refinements.',
-    });
+    // In this new flow, we just take the last selected suggestion's text,
+    // as it contains the fully formulated prompt.
+    const lastSelectionKey = Object.keys(selectedSuggestions).sort().pop();
+    if (lastSelectionKey) {
+        const finalText = selectedSuggestions[parseInt(lastSelectionKey)];
+        onPromptUpdate(() => finalText);
+        toast({
+            title: 'Prompt Refined!',
+            description: 'Your prompt has been updated with the optimized version.',
+        });
+    } else {
+        // Fallback to old method if something goes wrong, but it shouldn't.
+        const allSuggestions = Object.values(selectedSuggestions).join(' ');
+        onPromptUpdate(prev => `${prev.trim()} ${allSuggestions.trim()}`);
+    }
     setStep({ type: 'finished' });
   };
+
 
   const handleNextStep = useCallback(() => {
     const currentQuestionCount = step.type === 'options' ? step.data.length : 0;
