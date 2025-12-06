@@ -84,14 +84,14 @@ export function RefineView({ setView }: RefineViewProps) {
         </Card>
 
         {/* Right Panel: Wizard Steps */}
-        <Card className="flex flex-col">
+        <Card className="flex flex-col overflow-hidden">
           <CardHeader>
             <CardTitle>Refinement Wizard</CardTitle>
             <CardDescription>
               Follow the steps to improve your prompt.
             </CardDescription>
           </CardHeader>
-          <CardContent className="flex flex-col flex-1 overflow-y-auto">
+          <CardContent className="flex-1 flex flex-col overflow-y-auto">
             <RefinementWizard
               initialPrompt={promptText}
               onPromptUpdate={setPromptText}
