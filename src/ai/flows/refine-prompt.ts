@@ -98,6 +98,9 @@ const refinePromptFlow = async ({ prompt, apiKeys }: RefinePromptInput) => {
           schema: RefinePromptOutputSchema,
         },
       });
+      if (!output) {
+        throw new Error('No output from AI');
+      }
       return output;
     } catch (error: any) {
       const isRateLimitError =
