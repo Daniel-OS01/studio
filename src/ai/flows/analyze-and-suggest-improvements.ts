@@ -9,13 +9,13 @@
  */
 
 import {ai} from '@/ai/genkit';
+import {genkit} from 'genkit';
 import {googleAI} from '@genkit-ai/google-genai';
 import {z} from 'genkit';
 
 const AnalyzeAndSuggestImprovementsInputSchema = z.object({
   prompt: z.string().describe('The prompt to analyze and improve.'),
-  apiKey: z.string().optional().describe('An optional Google API key.'),
-  modelName: z.string().optional().describe('An optional Gemini model name.'),
+  apiKeys: z.array(z.string()).optional().describe('An optional list of Google API keys to try.'),
 });
 export type AnalyzeAndSuggestImprovementsInput = z.infer<
   typeof AnalyzeAndSuggestImprovementsInputSchema
@@ -35,29 +35,41 @@ export async function analyzeAndSuggestImprovements(
   return analyzeAndSuggestImprovementsFlow(input);
 }
 
-const prompt = ai.definePrompt({
-  name: 'analyzeAndSuggestImprovementsPrompt',
-  input: {schema: z.object({prompt: z.string()})},
-  output: {schema: AnalyzeAndSuggestImprovementsOutputSchema},
-  prompt: `You are an AI prompt expert. Your job is to analyze the prompt provided and suggest improvements.
+const analyzeAndSuggestImprovementsFlow = async ({prompt: promptText, apiKeys}: AnalyzeAndSuggestImprovementsInput) => {
+    const keysToTry = apiKeys?.length ? apiKeys : [process.env.GEMINI_API_KEY];
+    
+    for (const key of keysToTry) {
+      if (!key) continue;
+      try {
+        // Create a new, isolated Genkit instance for each attempt
+        const localAi = genkit({
+            plugins: [googleAI({apiKey: key})],
+        });
 
-  Prompt: {{{prompt}}}
+        const {output} = await localAi.generate({
+          prompt: `You are an AI prompt expert. Your job is to analyze the prompt provided and suggest improvements.
 
-  First, provide a detailed analysis of the prompt, including potential weaknesses.
-  Second, provide specific suggestions for improving the prompt to get better results from an AI model.
-  Be as detailed as possible.`,
-});
+Prompt: ${promptText}
 
-const analyzeAndSuggestImprovementsFlow = ai.defineFlow(
-  {
-    name: 'analyzeAndSuggestImprovementsFlow',
-    inputSchema: AnalyzeAndSuggestImprovementsInputSchema,
-    outputSchema: AnalyzeAndSuggestImprovementsOutputSchema,
-  },
-  async ({prompt: promptText, apiKey, modelName}) => {
-    const plugins = apiKey ? [googleAI({apiKey})] : [];
-    const model = modelName ? googleAI.model(modelName) : undefined;
-    const {output} = await prompt({prompt: promptText}, {plugins, model});
-    return output!;
+First, provide a detailed analysis of the prompt, including potential weaknesses.
+Second, provide specific suggestions for improving the prompt to get better results from an AI model.
+Be as detailed as possible.`,
+          model: ai.model,
+          output: {
+            schema: AnalyzeAndSuggestImprovementsOutputSchema,
+          },
+        });
+        if (!output) throw new Error("No output from AI");
+        return output;
+      } catch (error: any) {
+        const isRateLimitError = error.cause?.status === 429 || error.status === 429;
+        if (isRateLimitError && keysToTry.indexOf(key) < keysToTry.length - 1) {
+          console.log(`API key ending in ...${key?.slice(-4)} failed with rate limit. Trying next key.`);
+          continue;
+        }
+        throw error;
+      }
+    }
+    throw new Error("All API keys failed due to rate limiting or other errors.");
   }
-);
+;

@@ -1,199 +1,310 @@
+
 "use client"
 
-import { PromptCard } from "@/components/shared/prompt-card"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { useToast } from "@/hooks/use-toast"
-import { useLocalStorage } from "@/hooks/use-local-storage"
-import type { Prompt, View } from "@/lib/types"
-import { Download, Upload } from "lucide-react"
-import React, { useRef } from "react"
 import { ClientOnly } from "@/components/shared/client-only"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { Textarea } from "@/components/ui/textarea"
+import { useLocalStorage } from "@/hooks/use-local-storage"
+import { useToast } from "@/hooks/use-toast"
+import type { AppSettings, Prompt, View } from "@/lib/types"
+import { cn } from "@/lib/utils"
+import { formatDistanceToNow } from "date-fns"
+import { Plus, Trash2, Sparkles, Loader2, Copy, Edit } from "lucide-react"
+import React, { useEffect, useState, useTransition, useCallback } from "react"
+import { generatePromptName } from "@/ai/flows/generate-prompt-name"
+import ReactMarkdown from "react-markdown"
 
-interface LocalLibraryViewProps {
-  setView: (view: View) => void;
+interface CompactPromptCardProps {
+  prompt: Prompt
+  isSelected: boolean
+  onClick: () => void
+  onCopy: () => void;
+  onEdit: () => void;
 }
 
-function LocalLibraryViewContent({ setView }: LocalLibraryViewProps) {
+function CompactPromptCard({ prompt, isSelected, onClick, onCopy, onEdit }: CompactPromptCardProps) {
+  return (
+    <div
+      className={cn(
+        "p-3 rounded-lg border cursor-pointer hover:bg-muted/50 relative group",
+        isSelected && "bg-muted ring-2 ring-primary"
+      )}
+      onClick={onClick}
+    >
+      <div className="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); onEdit(); }}>
+              <Edit className="h-4 w-4" />
+          </Button>
+          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); onCopy(); }}>
+              <Copy className="h-4 w-4" />
+          </Button>
+      </div>
+      <div className="flex justify-between items-start mb-1">
+        <h3 className="font-semibold text-sm truncate pr-4">{prompt.name}</h3>
+        <p className="text-xs text-muted-foreground shrink-0">
+          {formatDistanceToNow(new Date(prompt.createdAt), {
+            addSuffix: true,
+          })}
+        </p>
+      </div>
+      <p className="text-xs text-muted-foreground line-clamp-2">
+        {prompt.text}
+      </p>
+    </div>
+  )
+}
+
+function LocalLibraryViewContent({ setView }: { setView: (view: View) => void }) {
   const [prompts, setPrompts] = useLocalStorage<Prompt[]>(
     "prompt-forge-library",
     []
   )
-  const [searchTerm, setSearchTerm] = React.useState("")
-  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [searchTerm, setSearchTerm] = useState("")
+  const [selectedPromptId, setSelectedPromptId] = useState<string | null>(null)
+  const [isEditing, setIsEditing] = useState(false);
+  
   const { toast } = useToast()
+  const [isGeneratingName, startGeneratingName] = useTransition()
+
+  const [settings] = useLocalStorage<AppSettings>('prompt-forge-settings', {
+    apiKeys: [],
+    activeApiKeyIndex: 0,
+    models: {
+      analysis: 'gemini-1.5-flash-latest',
+      metrics: 'gemini-1.5-flash-latest',
+      recommendations: 'gemini-1.5-flash-latest',
+      refine: 'gemini-1.5-flash-latest'
+    },
+  });
+
+  const getApiKeys = useCallback(() => {
+    const activeKey = settings.apiKeys?.[settings.activeApiKeyIndex]?.key ?? '';
+    const otherKeys =
+      settings.apiKeys
+        ?.filter((_, i) => i !== settings.activeApiKeyIndex)
+        .map((k) => k.key) ?? [];
+    return [activeKey, ...otherKeys].filter(Boolean);
+  }, [settings.apiKeys, settings.activeApiKeyIndex]);
+
+
+  // Select the first prompt by default if one exists
+  useEffect(() => {
+    const filtered = prompts.filter(
+      (p) =>
+        p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        p.text.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+    if (selectedPromptId && !filtered.find(p => p.id === selectedPromptId)) {
+        setSelectedPromptId(filtered.length > 0 ? filtered[0].id : null);
+    } else if (!selectedPromptId && filtered.length > 0) {
+        setSelectedPromptId(filtered[0].id);
+    }
+
+  }, [prompts, searchTerm, selectedPromptId]);
+
+  const handleAddNewPrompt = () => {
+    const newPrompt: Prompt = {
+      id: `prompt_${Date.now()}`,
+      name: "Untitled Prompt",
+      text: "Start writing your new prompt here...",
+      createdAt: new Date().toISOString(),
+    }
+    setPrompts((prev) => [newPrompt, ...prev])
+    setSelectedPromptId(newPrompt.id)
+    setIsEditing(true);
+  }
+  
+  const handleDeletePrompt = (idToDelete: string) => {
+    setPrompts(prompts.filter((p) => p.id !== idToDelete));
+    toast({
+        title: "Prompt Deleted",
+        description: "The prompt has been removed from your library.",
+    });
+  }
+
+  const handlePromptUpdate = (promptId: string, newText: string) => {
+    setPrompts((prev) =>
+      prev.map((p) => (p.id === promptId ? { ...p, text: newText } : p))
+    )
+  }
+  
+  const handleNameUpdate = (promptId: string, newName: string) => {
+     setPrompts((prev) =>
+      prev.map((p) => (p.id === promptId ? { ...p, name: newName } : p))
+    )
+  }
+
+  const handleGenerateTitle = (prompt: Prompt) => {
+    if (!prompt.text?.trim()) {
+      toast({
+        title: "Prompt is empty",
+        description: "Cannot generate a name for an empty prompt.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    startGeneratingName(async () => {
+      try {
+        const { name } = await generatePromptName({
+          prompt: prompt.text,
+          apiKeys: getApiKeys(),
+          modelName: settings.models.analysis
+        });
+        handleNameUpdate(prompt.id, name);
+        toast({
+          title: "Title Generated!",
+          description: `New title is: "${name}"`,
+        });
+      } catch (error) {
+        toast({
+          title: "Failed to generate title",
+          description: "Could not generate a title. Please check your API key and try again.",
+          variant: "destructive"
+        });
+      }
+    });
+  };
+
+  const handleCopyPrompt = (promptText: string) => {
+    navigator.clipboard.writeText(promptText);
+    toast({
+      title: "Prompt Copied",
+      description: `Prompt content has been copied to your clipboard.`,
+    });
+  };
 
   const filteredPrompts = prompts.filter(
     (p) =>
       p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       p.text.toLowerCase().includes(searchTerm.toLowerCase())
-  )
+  ).sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
-  const handleUsePrompt = (prompt: Prompt) => {
-    toast({
-      title: "Prompt Loaded",
-      description: `"${prompt.name}" is ready. Go to the Studio to use it. (This is a demo feature)`,
-    });
-    setView("studio");
-  }
-
-  const handleDeletePrompt = (id: string) => {
-    setPrompts(prompts.filter((p) => p.id !== id))
-    toast({
-      title: "Prompt Deleted",
-      description: "The prompt has been removed from your library.",
-    })
-  }
-
-  const handleExport = () => {
-    const dataStr = JSON.stringify(prompts, null, 2)
-    const dataUri =
-      "data:application/json;charset=utf-8," + encodeURIComponent(dataStr)
-    const exportFileDefaultName = "prompt-forge-library.json"
-    const linkElement = document.createElement("a")
-    linkElement.setAttribute("href", dataUri)
-    linkElement.setAttribute("download", exportFileDefaultName)
-    linkElement.click()
-    toast({
-      title: "Exporting Library",
-      description: "Your prompt library is being downloaded.",
-    })
-  }
-
-  const handleImportClick = () => {
-    fileInputRef.current?.click()
-  }
-
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
-    if (!file) return
-
-    const reader = new FileReader()
-    reader.onload = (e) => {
-      try {
-        const text = e.target?.result
-        if (typeof text !== "string") throw new Error("Invalid file content")
-        const importedPrompts = JSON.parse(text) as Prompt[]
-
-        if (
-          !Array.isArray(importedPrompts) ||
-          !importedPrompts.every((p) => p.id && p.name && p.text && p.createdAt)
-        ) {
-          throw new Error("Invalid prompt format")
-        }
-
-        const existingIds = new Set(prompts.map((p) => p.id))
-        const newPrompts = importedPrompts.filter((p) => !existingIds.has(p.id))
-        setPrompts([...prompts, ...newPrompts])
-        toast({
-          title: "Import Successful",
-          description: `${newPrompts.length} new prompts added to your library.`,
-        })
-      } catch (error) {
-        toast({
-          title: "Import Failed",
-          description:
-            "The selected file is not a valid prompt library. Please check the file and try again.",
-          variant: "destructive",
-        })
-        console.error("Import error:", error)
-      } finally {
-        if (fileInputRef.current) {
-          fileInputRef.current.value = ""
-        }
-      }
-    }
-    reader.readAsText(file)
-  }
+  const selectedPrompt = prompts.find((p) => p.id === selectedPromptId)
 
   return (
-    <>
-      <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-              <div>
-                  <CardTitle>Manage Prompts</CardTitle>
-                  <CardDescription>Search, import, or export your prompts.</CardDescription>
-              </div>
-               <div className="flex gap-2">
-                  <Button onClick={handleImportClick} variant="outline">
-                      <Upload /> Import
-                  </Button>
-                  <Button onClick={handleExport} disabled={prompts.length === 0}>
-                      <Download /> Export
-                  </Button>
-                  <input
-                      type="file"
-                      ref={fileInputRef}
-                      onChange={handleFileChange}
-                      accept=".json"
-                      className="hidden"
+      <div className="flex flex-col h-screen bg-background">
+      <header className="p-4 border-b flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-headline font-bold text-foreground">
+            Prompt Library
+          </h1>
+          <p className="text-muted-foreground">
+            Your personal collection of crafted prompts.
+          </p>
+        </div>
+      </header>
+       <main className="grid md:grid-cols-[340px_1fr] flex-1 overflow-y-auto">
+        {/* Left Column: Prompt List */}
+        <div className="flex flex-col gap-4 p-4 border-r bg-background">
+          <div className="flex items-center gap-2">
+            <Input
+              placeholder="Search your prompts..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+            <Button onClick={handleAddNewPrompt} size="sm" variant="outline" className="gap-1.5">
+              <Plus className="h-4 w-4" />
+              New
+            </Button>
+          </div>
+          <ScrollArea className="flex-1 -mx-4">
+              <div className="px-4 space-y-2 pb-4">
+              {filteredPrompts.length > 0 ? (
+                  filteredPrompts.map((prompt) => (
+                  <CompactPromptCard
+                      key={prompt.id}
+                      prompt={prompt}
+                      isSelected={prompt.id === selectedPromptId}
+                      onClick={() => {
+                        setSelectedPromptId(prompt.id);
+                        setIsEditing(false);
+                      }}
+                      onEdit={() => {
+                        setSelectedPromptId(prompt.id);
+                        setIsEditing(true);
+                      }}
+                      onCopy={() => handleCopyPrompt(prompt.text)}
                   />
+                  ))
+              ) : (
+                  <div className="text-center text-sm text-muted-foreground pt-10">
+                      <p>No prompts found.</p>
+                      <p>Click 'New' to add one.</p>
+                  </div>
+              )}
               </div>
-          </CardHeader>
-          <CardContent>
-               <Input
-                  placeholder="Search prompts..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-              />
-          </CardContent>
-      </Card>
+          </ScrollArea>
+        </div>
 
-      <div className="flex-1 overflow-auto pr-2">
-        {filteredPrompts.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredPrompts.map((prompt) => (
-              <PromptCard
-                key={prompt.id}
-                prompt={prompt}
-                actions={
-                  <>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleDeletePrompt(prompt.id)}
-                    >
-                      Delete
+        {/* Right Column: Editor/Viewer */}
+        <div className="flex flex-col overflow-y-auto">
+          {selectedPrompt ? (
+            <div className="flex-1 flex flex-col">
+              <div className="p-4 border-b space-y-1">
+                  <div className="flex items-center gap-2">
+                    <Input 
+                        value={selectedPrompt.name}
+                        onChange={(e) => handleNameUpdate(selectedPrompt.id, e.target.value)}
+                        className="text-lg font-bold h-auto p-0 border-none focus-visible:ring-0 shadow-none flex-1 bg-transparent"
+                    />
+                    <Button variant="ghost" size="sm" onClick={() => handleGenerateTitle(selectedPrompt)} disabled={isGeneratingName}>
+                      {isGeneratingName ? <Loader2 className="animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
+                      Generate
                     </Button>
-                    <Button size="sm" onClick={() => handleUsePrompt(prompt)}>
-                      Use
-                    </Button>
-                  </>
-                }
-              />
-            ))}
-          </div>
-        ) : (
-          <div className="flex flex-col items-center justify-center h-full text-center p-8 border-2 border-dashed rounded-lg">
-            <h3 className="text-lg font-semibold">Your Library is Empty</h3>
-            <p className="text-muted-foreground max-w-sm">
-              Go to the Studio to create and save your first prompt, or import an existing library.
-            </p>
-            <Button className="mt-4" onClick={() => setView("studio")}>Go to Studio</Button>
-          </div>
-        )}
-      </div>
-    </>
+                  </div>
+                <p className="text-sm text-muted-foreground">
+                  {isEditing ? 'Just start typing to edit your prompt.' : 'Click the edit button to start making changes.'}
+                </p>
+              </div>
+              <div className="flex-1 p-4 prose prose-sm max-w-none">
+                {isEditing ? (
+                  <Textarea
+                    value={selectedPrompt.text}
+                    onChange={(e) =>
+                      handlePromptUpdate(selectedPrompt.id, e.target.value)
+                    }
+                    className="w-full h-full resize-none border-none focus-visible:ring-0 p-0 bg-transparent"
+                    placeholder="Enter your prompt text here..."
+                    autoFocus
+                  />
+                ) : (
+                    <ReactMarkdown className="w-full h-full p-0 bg-transparent">{selectedPrompt.text}</ReactMarkdown>
+                )}
+              </div>
+               <div className="p-4 border-t mt-auto flex justify-end items-center gap-2">
+                  <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => handleDeletePrompt(selectedPrompt.id)}>
+                      <Trash2 className="mr-2 h-4 w-4" /> Delete Prompt
+                  </Button>
+                  <div className="flex-grow" />
+                  <Button variant="outline" size="sm" onClick={() => handleCopyPrompt(selectedPrompt.text)}>
+                    <Copy className="mr-2 h-4 w-4" />
+                    Copy
+                  </Button>
+                  <Button size="sm" onClick={() => setIsEditing(!isEditing)} >
+                      <Edit className="mr-2 h-4 w-4" /> 
+                      {isEditing ? 'Finish Editing' : 'Edit Prompt'}
+                  </Button>
+               </div>
+            </div>
+          ) : (
+            <div className="flex items-center justify-center h-full text-center text-muted-foreground">
+              <p>Select a prompt to view or create a new one.</p>
+            </div>
+          )}
+        </div>
+      </main>
+    </div>
   )
 }
 
-export function LocalLibraryView({ setView }: LocalLibraryViewProps) {
+export function LocalLibraryView({ setView }: { setView: (view: View) => void }) {
   return (
-    <div className="flex flex-col h-screen bg-background">
-      <header className="p-4 border-b">
-        <h1 className="text-2xl font-headline font-bold text-foreground">
-          My Library
-        </h1>
-        <p className="text-muted-foreground">
-          Your personal collection of crafted prompts.
-        </p>
-      </header>
-      <main className="flex-1 flex flex-col p-4 gap-4 overflow-hidden">
-        <ClientOnly>
-          <LocalLibraryViewContent setView={setView} />
-        </ClientOnly>
-      </main>
-    </div>
+    <ClientOnly>
+      <LocalLibraryViewContent setView={setView} />
+    </ClientOnly>
   )
 }

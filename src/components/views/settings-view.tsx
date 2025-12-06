@@ -25,20 +25,20 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { useLocalStorage } from "@/hooks/use-local-storage"
 import { useToast } from "@/hooks/use-toast"
 import type { AppSettings, ApiKey } from "@/lib/types"
-import { Key, Plus, Save, Trash2, Info } from "lucide-react"
+import { Key, Plus, Save, Trash2, Info, Smartphone } from "lucide-react"
 import React, { useEffect, useState } from "react"
 import { format } from "date-fns"
+import { Switch } from "../ui/switch"
 
 const availableModels = [
-  "gemini-2.5-flash",
+  "gemini-1.5-flash-latest",
   "gemini-pro",
   "gemini-1.5-pro-latest",
-  "gemini-1.5-flash-latest",
 ]
 
 const customModelValue = "custom"
 
-type ModelConfig = "analysis" | "metrics" | "recommendations"
+type ModelConfig = "analysis" | "metrics" | "recommendations" | "refine";
 
 function SettingsViewContent() {
   const [savedSettings, setSavedSettings] = useLocalStorage<AppSettings>(
@@ -46,21 +46,41 @@ function SettingsViewContent() {
     {
       apiKeys: [],
       activeApiKeyIndex: 0,
+      mobileView: false,
       models: {
-        analysis: "gemini-2.5-flash",
-        metrics: "gemini-2.5-flash",
-        recommendations: "gemini-2.5-flash",
+        analysis: 'gemini-1.5-flash-latest',
+        metrics: 'gemini-1.5-flash-latest',
+        recommendations: 'gemini-1.5-flash-latest',
+        refine: 'gemini-1.5-flash-latest',
       },
     }
   )
 
-  const [localSettings, setLocalSettings] = useState<AppSettings>(savedSettings)
+  const [localSettings, setLocalSettings] = useState<AppSettings>(() => ({
+    ...savedSettings,
+    mobileView: savedSettings.mobileView ?? false,
+    models: {
+      analysis: savedSettings.models?.analysis ?? 'gemini-1.5-flash-latest',
+      metrics: savedSettings.models?.metrics ?? 'gemini-1.5-flash-latest',
+      recommendations: savedSettings.models?.recommendations ?? 'gemini-1.5-flash-latest',
+      refine: savedSettings.models?.refine ?? 'gemini-1.5-flash-latest',
+    }
+  }));
   const [newKeyName, setNewKeyName] = useState("")
   const [newKeyValue, setNewKeyValue] = useState("")
   const { toast } = useToast()
 
   useEffect(() => {
-    setLocalSettings(savedSettings)
+    setLocalSettings({
+      ...savedSettings,
+      mobileView: savedSettings.mobileView ?? false,
+      models: {
+        analysis: savedSettings.models?.analysis ?? 'gemini-1.5-flash-latest',
+        metrics: savedSettings.models?.metrics ?? 'gemini-1.5-flash-latest',
+        recommendations: savedSettings.models?.recommendations ?? 'gemini-1.5-flash-latest',
+        refine: savedSettings.models?.refine ?? 'gemini-1.5-flash-latest',
+      }
+    });
   }, [savedSettings])
   
   const handleModelChange = (modelType: ModelConfig, value: string) => {
@@ -118,13 +138,33 @@ function SettingsViewContent() {
     })
   }
 
-  const isCustomModel = (modelName: string) =>
-    modelName !== "" && !availableModels.includes(modelName)
+  const isCustomModel = (modelName?: string) =>
+    modelName !== undefined && modelName !== "" && !availableModels.includes(modelName)
 
   const currentKey = (localSettings.apiKeys || [])[localSettings.activeApiKeyIndex];
 
   return (
-    <main className="flex-1 flex flex-col p-4 gap-4 overflow-hidden">
+    <main className="flex-1 flex flex-col p-4 gap-4 overflow-y-auto">
+      <Card>
+        <CardHeader>
+          <CardTitle>Appearance</CardTitle>
+          <CardDescription>
+            Customize the look and feel of the application.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+            <div className="flex items-center space-x-2">
+                <Switch
+                    id="mobile-view"
+                    checked={localSettings.mobileView}
+                    onCheckedChange={(checked) => setLocalSettings(prev => ({...prev, mobileView: checked}))}
+                />
+                <Label htmlFor="mobile-view" className="flex items-center gap-2 cursor-pointer">
+                    <Smartphone /> Force Mobile View
+                </Label>
+            </div>
+        </CardContent>
+      </Card>
       <Card>
         <CardHeader>
           <CardTitle>API Key Management</CardTitle>
@@ -152,16 +192,16 @@ function SettingsViewContent() {
               </Label>
             ))}
           </RadioGroup>
-          <div className="flex items-end gap-2 pt-4">
-            <div className="grid gap-1.5 flex-1">
+          <div className="flex flex-col sm:flex-row items-end gap-2 pt-4">
+            <div className="grid gap-1.5 flex-1 w-full">
               <Label htmlFor="new-key-name">Key Name</Label>
               <Input id="new-key-name" placeholder="e.g., Personal Key" value={newKeyName} onChange={(e) => setNewKeyName(e.target.value)} />
             </div>
-            <div className="grid gap-1.5 flex-1">
+            <div className="grid gap-1.5 flex-1 w-full">
               <Label htmlFor="new-key-value">Key Value</Label>
               <Input id="new-key-value" type="password" placeholder="Enter Google API Key" value={newKeyValue} onChange={(e) => setNewKeyValue(e.target.value)}/>
             </div>
-            <Button onClick={handleAddNewKey}><Plus /> Add Key</Button>
+            <Button onClick={handleAddNewKey} className="w-full sm:w-auto"><Plus /> Add Key</Button>
           </div>
         </CardContent>
       </Card>
@@ -197,7 +237,7 @@ function SettingsViewContent() {
             provide a custom model name.
           </CardDescription>
         </CardHeader>
-        <CardContent className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <CardContent className="grid sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
           <div className="grid gap-4">
             <div className="grid gap-2">
               <Label htmlFor="model-analysis">Analysis Model</Label>
@@ -225,7 +265,7 @@ function SettingsViewContent() {
             {(localSettings.models.analysis === "" || isCustomModel(localSettings.models.analysis)) && (
               <Input
                 placeholder="Enter custom model name"
-                value={localSettings.models.analysis}
+                value={localSettings.models.analysis || ''}
                 onChange={(e) =>
                   handleCustomModelChange("analysis", e.target.value)
                 }
@@ -259,7 +299,7 @@ function SettingsViewContent() {
             {(localSettings.models.metrics === "" || isCustomModel(localSettings.models.metrics)) && (
               <Input
                 placeholder="Enter custom model name"
-                value={localSettings.models.metrics}
+                value={localSettings.models.metrics || ''}
                 onChange={(e) =>
                   handleCustomModelChange("metrics", e.target.value)
                 }
@@ -297,9 +337,47 @@ function SettingsViewContent() {
             {(localSettings.models.recommendations === "" || isCustomModel(localSettings.models.recommendations)) && (
               <Input
                 placeholder="Enter custom model name"
-                value={localSettings.models.recommendations}
+                value={localSettings.models.recommendations || ''}
                 onChange={(e) =>
                   handleCustomModelChange("recommendations", e.target.value)
+                }
+              />
+            )}
+          </div>
+           <div className="grid gap-4">
+            <div className="grid gap-2">
+              <Label htmlFor="model-refine">
+                Refine Model
+              </Label>
+              <Select
+                value={
+                  localSettings.models.refine && !availableModels.includes(localSettings.models.refine)
+                    ? customModelValue
+                    : localSettings.models.refine
+                }
+                onValueChange={(value) =>
+                  handleModelChange("refine", value)
+                }
+              >
+                <SelectTrigger id="model-refine">
+                  <SelectValue placeholder="Select a model" />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableModels.map((model) => (
+                    <SelectItem key={model} value={model}>
+                      {model}
+                    </SelectItem>
+                  ))}
+                  <SelectItem value={customModelValue}>Custom...</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {(localSettings.models.refine === "" || isCustomModel(localSettings.models.refine)) && (
+              <Input
+                placeholder="Enter custom model name"
+                value={localSettings.models.refine || ''}
+                onChange={(e) =>
+                  handleCustomModelChange("refine", e.target.value)
                 }
               />
             )}
@@ -333,3 +411,5 @@ export function SettingsView() {
     </div>
   )
 }
+
+    
