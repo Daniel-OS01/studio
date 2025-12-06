@@ -189,7 +189,7 @@ export function LocalLibraryView({ setView }: LocalLibraryViewProps) {
           Your personal collection of crafted prompts.
         </p>
       </header>
-      <main className="flex-1 flex flex-col p-4 gap-4 overflow-hidden">
+      <main className="flex-1 flex flex-col p-4 gap-4 overflow-y-auto">
         <ClientOnly>
           <LocalLibraryViewContent setView={setView} />
         </ClientOnly>

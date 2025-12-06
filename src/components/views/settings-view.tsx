@@ -124,7 +124,7 @@ function SettingsViewContent() {
   const currentKey = (localSettings.apiKeys || [])[localSettings.activeApiKeyIndex];
 
   return (
-    <main className="flex-1 flex flex-col p-4 gap-4 overflow-hidden">
+    <main className="flex-1 flex flex-col p-4 gap-4 overflow-y-auto">
       <Card>
         <CardHeader>
           <CardTitle>API Key Management</CardTitle>

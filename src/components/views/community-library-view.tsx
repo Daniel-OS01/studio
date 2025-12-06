@@ -41,7 +41,7 @@ export function CommunityLibraryView({ setView }: CommunityLibraryViewProps) {
           Browse and adapt high-quality prompts from the community.
         </p>
       </header>
-      <main className="flex-1 flex flex-col p-4 gap-4 overflow-hidden">
+      <main className="flex-1 flex flex-col p-4 gap-4 overflow-y-auto">
         <Input
           placeholder="Search community prompts..."
           value={searchTerm}

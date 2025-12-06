@@ -61,7 +61,6 @@ import {
   ThumbsUp,
 } from 'lucide-react';
 import React, { useState, useTransition } from 'react';
-import { RefinePromptWizard } from '../shared/refinement-wizard';
 
 function HistoryTabContent({
   setPromptText,
@@ -521,7 +520,7 @@ export function StudioView({ setView }: StudioViewProps) {
         </Card>
 
         {/* Right Panel: Tabs */}
-        <Tabs defaultValue="analysis" className="flex flex-col">
+        <Tabs defaultValue="analysis" className="flex flex-col overflow-hidden">
           <TabsList>
             <TabsTrigger value="analysis">Analysis</TabsTrigger>
             <TabsTrigger value="metrics">Metrics</TabsTrigger>
@@ -529,7 +528,7 @@ export function StudioView({ setView }: StudioViewProps) {
             <TabsTrigger value="history">History</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="analysis" className="flex-1 overflow-auto mt-4">
+          <TabsContent value="analysis" className="flex-1 overflow-y-auto mt-4">
             <Card className="h-full">
               <CardHeader>
                 <CardTitle>Prompt Analysis</CardTitle>
@@ -576,7 +575,7 @@ export function StudioView({ setView }: StudioViewProps) {
             </Card>
           </TabsContent>
           
-          <TabsContent value="metrics" className="flex-1 overflow-auto mt-4">
+          <TabsContent value="metrics" className="flex-1 overflow-y-auto mt-4">
             <Card className="h-full">
               <CardHeader>
                 <CardTitle>Quality Metrics</CardTitle>
@@ -629,7 +628,7 @@ export function StudioView({ setView }: StudioViewProps) {
 
           <TabsContent
             value="recommendations"
-            className="flex-1 overflow-auto mt-4"
+            className="flex-1 overflow-y-auto mt-4"
           >
             <Card className="h-full">
               <CardHeader>

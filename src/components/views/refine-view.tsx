@@ -50,7 +50,7 @@ export function RefineView({ setView }: RefineViewProps) {
         </p>
       </header>
 
-      <main className="flex-1 grid md:grid-cols-2 gap-4 p-4 overflow-hidden">
+      <main className="flex-1 grid md:grid-cols-2 gap-4 p-4 overflow-y-auto">
         {/* Left Panel: Prompt Input & Display */}
         <Card className="flex flex-col">
           <CardHeader>
