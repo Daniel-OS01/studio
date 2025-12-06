@@ -48,8 +48,8 @@ const GenerateRefinementOptionsOutputSchema = z.object({
   options: z
     .array(RefinementGoalSchema)
     .min(3)
-    .max(5)
-    .describe('A list of 3 to 5 high-level refinement goals.'),
+    .max(6)
+    .describe('A list of 3 to 6 high-level refinement goals.'),
 });
 export type GenerateRefinementOptionsOutput = z.infer<
   typeof GenerateRefinementOptionsOutputSchema
@@ -90,7 +90,7 @@ const generateRefinementOptionsFlow = async ({
         }
         
         Generate a clear question ('title') and a brief 'explanation' for this step.
-        Then, you MUST provide a list of 3 to 5 diverse, high-level refinement goals ('options') related to the topic.
+        Then, you MUST provide a list of 3 to 6 diverse, high-level refinement goals ('options') related to the topic.
         Each option should have a short 'title'.
         
         Example for topic "Primary Goal":
