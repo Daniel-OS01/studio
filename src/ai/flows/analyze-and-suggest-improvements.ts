@@ -36,14 +36,15 @@ export async function analyzeAndSuggestImprovements(
 }
 
 const analyzeAndSuggestImprovementsFlow = async ({prompt: promptText, apiKeys, modelName}: AnalyzeAndSuggestImprovementsInput) => {
-    const keysToTry = apiKeys?.length ? apiKeys : [undefined];
+    const keysToTry = apiKeys?.length ? apiKeys : [process.env.GEMINI_API_KEY];
     const model = modelName ? googleAI.model(modelName) : 'googleai/gemini-2.5-flash';
     
     for (const key of keysToTry) {
+      if (!key) continue;
       try {
         // Create a new, isolated Genkit instance for each attempt
         const localAi = genkit({
-            plugins: key ? [googleAI({apiKey: key})] : [googleAI()],
+            plugins: [googleAI({apiKey: key})],
         });
 
         const {output} = await localAi.generate({
@@ -59,6 +60,7 @@ Be as detailed as possible.`,
             schema: AnalyzeAndSuggestImprovementsOutputSchema,
           },
         });
+        if (!output) throw new Error("No output from AI");
         return output;
       } catch (error: any) {
         const isRateLimitError = error.cause?.status === 429 || error.status === 429;

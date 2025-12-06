@@ -31,13 +31,14 @@ export async function comparePromptVersions(input: ComparePromptVersionsInput): 
 }
 
 const comparePromptVersionsFlow = async ({promptVersion1, promptVersion2, apiKeys}: ComparePromptVersionsInput) => {
-    const keysToTry = apiKeys?.length ? apiKeys : [undefined];
+    const keysToTry = apiKeys?.length ? apiKeys : [process.env.GEMINI_API_KEY];
     
     for (const key of keysToTry) {
+      if (!key) continue;
       try {
         // Create a new, isolated Genkit instance for each attempt
         const localAi = genkit({
-            plugins: key ? [googleAI({apiKey: key})] : [googleAI()],
+            plugins: [googleAI({apiKey: key})],
         });
 
         const {output} = await localAi.generate({
@@ -56,6 +57,7 @@ Analysis:
             schema: ComparePromptVersionsOutputSchema,
           },
         });
+        if (!output) throw new Error("No output from AI");
         return output;
       } catch (error: any) {
         const isRateLimitError = error.cause?.status === 429 || error.status === 429;
